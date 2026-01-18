@@ -2,7 +2,7 @@
 -- Create database
 CREATE DATABASE IF NOT EXISTS smart_retail_db;
 USE smart_retail_db;
-
+SELECT * FROM products
 
 Create Table login(
 id INT AUTO_INCREMENT PRIMARY KEY,
