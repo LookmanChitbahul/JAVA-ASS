@@ -2,7 +2,7 @@
 -- Create database
 CREATE DATABASE IF NOT EXISTS smart_retail_db;
 USE smart_retail_db;
-SELECT * FROM products
+
 
 Create Table login(
 id INT AUTO_INCREMENT PRIMARY KEY,
@@ -110,6 +110,7 @@ CREATE TABLE IF NOT EXISTS Analytics (
     FOREIGN KEY (best_product) REFERENCES Products(product_id) ON DELETE SET NULL,
     INDEX idx_date (date)
 ) ENGINE=InnoDB;
+
 
 -- Create sample products
 INSERT INTO Products (name, category, price, stock, supplier) VALUES
