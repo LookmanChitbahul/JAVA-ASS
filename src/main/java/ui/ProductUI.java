@@ -27,7 +27,7 @@ public class ProductUI extends JPanel {
     private JButton addButton;
     private JButton refreshButton;
     private JButton clearButton;
-    private final String currentUserRole;
+  
     private boolean isEditMode = false;
     private int editingProductId = -1;
     
@@ -50,8 +50,8 @@ public class ProductUI extends JPanel {
      * Initializes the UI components and loads product data
      * @param userRole The role of the current user (for access control)
      */
-    public ProductUI(String userRole) {
-        this.currentUserRole = userRole;
+    public ProductUI() {
+        
         this.ProductService = new ProductService();
         
         // Initialize the UI components and display them
@@ -876,7 +876,7 @@ public class ProductUI extends JPanel {
             frame.setResizable(true);
             frame.setBackground(DARK_BG);
             
-            ProductUI productUI = new ProductUI("Admin");
+            ProductUI productUI = new ProductUI();
             frame.add(productUI);
             
             frame.setVisible(true);

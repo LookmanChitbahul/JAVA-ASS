@@ -23,7 +23,7 @@ public class ProductService {
      */
     public ProductService() {
         try {
-            this.connection = database.DBConnection.getInstance().getConnection();
+            this.connection = database.DBConnection.getConnection();
         } catch (Exception e) {
             System.err.println("Error getting database connection: " + e.getMessage());
             this.connection = null;

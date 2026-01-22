@@ -1,7 +1,7 @@
 -- Smart Retail System - Database Schema
 -- Create database
-CREATE DATABASE IF NOT EXISTS smart_retail_db;
-USE smart_retail_db;
+CREATE DATABASE IF NOT EXISTS smart_retail;
+USE smart_retail;
 
 
 Create Table login(
@@ -129,7 +129,7 @@ INSERT INTO Products (name, category, price, stock, supplier) VALUES
 ('Notebook A4', 'Stationery', 150.00, 500, 'Office Supplies'),
 ('Pen Pack', 'Stationery', 200.00, 300, 'Office Supplies'),
 ('Pencil Set', 'Stationery', 250.00, 250, 'Office Supplies')
-ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP;
+
 
 -- Create sample customers
 INSERT INTO Customers (first_name, last_name, email, phone, address, city, country)
@@ -139,7 +139,7 @@ VALUES
 ('Mohammed', 'Ahmed', 'mohammed.ahmed@email.com', '+230 3456789', '789 Palm Road', 'Curepipe', 'Mauritius'),
 ('Sarah', 'Wilson', 'sarah.wilson@email.com', '+230 4567890', '321 Rose Lane', 'Vacoas', 'Mauritius'),
 ('Robert', 'Johnson', 'robert.johnson@email.com', '+230 5678901', '654 Lily Street', 'Port Louis', 'Mauritius')
-ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP;
+
 
 -- Display tables summary
 SHOW TABLES;
