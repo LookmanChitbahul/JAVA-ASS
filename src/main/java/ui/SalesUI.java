@@ -9,10 +9,12 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.ArrayList;
+import java.io.File;
 
 import models.Product;
 import models.Sale;
 import models.SaleDetail;
+import models.Customer;
 import services.SalesService;
 import services.ProductService;
 import services.CustomerService;
@@ -33,7 +35,7 @@ public class SalesUI extends JPanel {
     private JLabel lblTotalAmount;
     private JLabel lblSaleId;
     private JLabel lblSaleDate;
-    private JLabel lblCustomerName;
+    private JLabel lblCustomerInfo;
 
     // Buttons
     private JButton btnAddToCart;
@@ -42,6 +44,7 @@ public class SalesUI extends JPanel {
     private JButton btnGenerateReceipt;
     private JButton btnClearCart;
     private JButton btnViewReceipts;
+    private JButton btnAddCustomer;
 
     // Data
     private List<Product> productList;
@@ -90,7 +93,7 @@ public class SalesUI extends JPanel {
 
     private void createComponents() {
         // Text fields
-        txtCustomerId = createTextField(15);
+        txtCustomerId = createTextField(10);
         txtSearchProduct = createTextField(20);
 
         // Labels
@@ -98,7 +101,7 @@ public class SalesUI extends JPanel {
         lblSaleId = createStyledLabel("New Sale", new Font("Arial", Font.PLAIN, 12), Color.DARK_GRAY);
         lblSaleDate = createStyledLabel(new SimpleDateFormat("dd-MMM-yyyy").format(new Date()),
                 new Font("Arial", Font.PLAIN, 12), Color.DARK_GRAY);
-        lblCustomerName = createStyledLabel("", new Font("Arial", Font.PLAIN, 12), Color.DARK_GRAY);
+        lblCustomerInfo = createStyledLabel("", new Font("Arial", Font.PLAIN, 12), Color.DARK_GRAY);
 
         // Tables
         createProductsTable();
@@ -111,6 +114,7 @@ public class SalesUI extends JPanel {
         btnGenerateReceipt = createStyledButton("Generate Receipt", COLOR_SECONDARY);
         btnClearCart = createStyledButton("Clear Cart", COLOR_WARNING);
         btnViewReceipts = createStyledButton("View Receipts", new Color(108, 117, 125));
+        btnAddCustomer = createStyledButton("+ New Customer", new Color(153, 102, 255));
 
         // Initialize data
         productList = new ArrayList<>();
@@ -136,7 +140,7 @@ public class SalesUI extends JPanel {
     }
 
     private void createProductsTable() {
-        String[] columns = {"ID", "Product Name", "Category", "Price", "Stock"};
+        String[] columns = {"ID", "Name", "Category", "Price", "Stock"};
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -193,7 +197,7 @@ public class SalesUI extends JPanel {
         button.setFocusPainted(false);
         button.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(bgColor.darker(), 1),
-                BorderFactory.createEmptyBorder(8, 15, 8, 15)
+                BorderFactory.createEmptyBorder(6, 12, 6, 12)
         ));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
@@ -241,13 +245,18 @@ public class SalesUI extends JPanel {
 
         // Row 1
         infoPanel.add(createLabelPanel("Customer ID:", txtCustomerId));
-        infoPanel.add(createLabelPanel("Customer:", lblCustomerName));
+        infoPanel.add(createLabelPanel("Customer:", lblCustomerInfo));
         infoPanel.add(createLabelPanel("Sale ID:", lblSaleId));
 
         // Row 2
         infoPanel.add(createLabelPanel("Search Product:", txtSearchProduct));
         infoPanel.add(createLabelPanel("Date:", lblSaleDate));
-        infoPanel.add(new JPanel()); // Empty cell
+        infoPanel.add(new JPanel()); // Empty cell for button
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        buttonPanel.setBackground(Color.WHITE);
+        buttonPanel.add(btnAddCustomer);
+        infoPanel.add(buttonPanel);
 
         panel.add(lblTitle, BorderLayout.NORTH);
         panel.add(infoPanel, BorderLayout.CENTER);
@@ -284,6 +293,17 @@ public class SalesUI extends JPanel {
         ));
         panel.setBackground(Color.WHITE);
 
+        // Search panel
+        JPanel searchPanel = new JPanel(new BorderLayout(5, 5));
+        searchPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        searchPanel.setBackground(Color.WHITE);
+
+        JLabel lblSearch = new JLabel("Search:");
+        txtSearchProduct = new JTextField();
+
+        searchPanel.add(lblSearch, BorderLayout.WEST);
+        searchPanel.add(txtSearchProduct, BorderLayout.CENTER);
+
         // Products table
         JScrollPane scrollPane = new JScrollPane(tblProducts);
         scrollPane.setPreferredSize(new Dimension(450, 300));
@@ -293,6 +313,7 @@ public class SalesUI extends JPanel {
         buttonPanel.setBackground(Color.WHITE);
         buttonPanel.add(btnAddToCart);
 
+        panel.add(searchPanel, BorderLayout.NORTH);
         panel.add(scrollPane, BorderLayout.CENTER);
         panel.add(buttonPanel, BorderLayout.SOUTH);
 
@@ -385,12 +406,14 @@ public class SalesUI extends JPanel {
         btnCheckout.addActionListener(e -> processCheckout());
         btnGenerateReceipt.addActionListener(e -> generateReceipt());
         btnViewReceipts.addActionListener(e -> viewReceipts());
+        btnAddCustomer.addActionListener(e -> addNewCustomer());
     }
 
     private void loadInitialData() {
         SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
             @Override
             protected Void doInBackground() throws Exception {
+                // Use getAllProducts() from your ProductService
                 productList = productService.getAllProducts();
                 return null;
             }
@@ -416,10 +439,10 @@ public class SalesUI extends JPanel {
         for (Product product : productList) {
             model.addRow(new Object[]{
                     product.getProductId(),
-                    product.getProductName(),
+                    product.getName(),
                     product.getCategory(),
                     String.format("$%.2f", product.getPrice()),
-                    product.getStockQuantity()
+                    product.getStock()
             });
         }
     }
@@ -431,16 +454,16 @@ public class SalesUI extends JPanel {
 
         for (Product product : productList) {
             if (searchText.isEmpty() ||
-                    product.getProductName().toLowerCase().contains(searchText) ||
+                    product.getName().toLowerCase().contains(searchText) ||
                     String.valueOf(product.getProductId()).contains(searchText) ||
                     (product.getCategory() != null && product.getCategory().toLowerCase().contains(searchText))) {
 
                 model.addRow(new Object[]{
                         product.getProductId(),
-                        product.getProductName(),
+                        product.getName(),
                         product.getCategory(),
                         String.format("$%.2f", product.getPrice()),
-                        product.getStockQuantity()
+                        product.getStock()
                 });
             }
         }
@@ -449,7 +472,7 @@ public class SalesUI extends JPanel {
     private void validateCustomer() {
         String customerIdStr = txtCustomerId.getText().trim();
         if (customerIdStr.isEmpty()) {
-            lblCustomerName.setText("");
+            lblCustomerInfo.setText("");
             return;
         }
 
@@ -462,33 +485,132 @@ public class SalesUI extends JPanel {
         int customerId = Integer.parseInt(customerIdStr);
 
         SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-            private String customerName = "";
+            private String customerContact = "";
+            private String customerEmail = "";
+            private int loyaltyPoints = 0;
 
             @Override
             protected Void doInBackground() throws Exception {
                 try {
-                    models.Customer customer = customerService.getCustomerById(customerId);
+                    Customer customer = customerService.getCustomerById(customerId);
                     if (customer != null) {
-                        customerName = customer.getCustomerName();
+                        customerContact = customer.getContact();
+                        customerEmail = customer.getEmail();
+                        loyaltyPoints = customer.getLoyaltyPoints();
                     }
                 } catch (Exception e) {
                     // Customer not found - this is acceptable
+                    System.err.println("Customer not found: " + e.getMessage());
                 }
                 return null;
             }
 
             @Override
             protected void done() {
-                if (customerName.isEmpty()) {
-                    lblCustomerName.setText("(New Customer)");
-                    lblCustomerName.setForeground(COLOR_WARNING);
-                } else {
-                    lblCustomerName.setText(customerName);
-                    lblCustomerName.setForeground(COLOR_SUCCESS);
+                try {
+                    get();
+                    if (customerContact == null || customerContact.isEmpty()) {
+                        lblCustomerInfo.setText("(Customer ID not found)");
+                        lblCustomerInfo.setForeground(COLOR_WARNING);
+                    } else {
+                        String info = String.format("Contact: %s | Email: %s | Points: %d",
+                                customerContact, customerEmail, loyaltyPoints);
+                        lblCustomerInfo.setText(info);
+                        lblCustomerInfo.setForeground(COLOR_SUCCESS);
+                    }
+                } catch (Exception e) {
+                    lblCustomerInfo.setText("(Error loading customer)");
+                    lblCustomerInfo.setForeground(COLOR_DANGER);
                 }
             }
         };
         worker.execute();
+    }
+
+    private void addNewCustomer() {
+        // Create dialog for new customer
+        JDialog dialog = new JDialog((Frame)SwingUtilities.getWindowAncestor(this), "Add New Customer", true);
+        dialog.setLayout(new BorderLayout(10, 10));
+        dialog.setSize(400, 250);
+        dialog.setLocationRelativeTo(this);
+
+        JPanel formPanel = new JPanel(new GridLayout(3, 2, 10, 10));
+        formPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        JTextField txtContact = new JTextField();
+        JTextField txtEmail = new JTextField();
+
+        formPanel.add(new JLabel("Contact:"));
+        formPanel.add(txtContact);
+        formPanel.add(new JLabel("Email:"));
+        formPanel.add(txtEmail);
+        formPanel.add(new JLabel("Loyalty Points:"));
+        formPanel.add(new JLabel("0 (default)"));
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        JButton btnSave = createStyledButton("Save", COLOR_SUCCESS);
+        JButton btnCancel = createStyledButton("Cancel", COLOR_DANGER);
+
+        btnSave.addActionListener(e -> {
+            String contact = txtContact.getText().trim();
+            String email = txtEmail.getText().trim();
+
+            if (contact.isEmpty() || email.isEmpty()) {
+                showErrorMessage("Validation Error", "Contact and Email are required.");
+                return;
+            }
+
+            if (!Validator.isValidEmail(email)) {
+                showErrorMessage("Validation Error", "Please enter a valid email address.");
+                return;
+            }
+
+            SwingWorker<Integer, Void> worker = new SwingWorker<Integer, Void>() {
+                @Override
+                protected Integer doInBackground() throws Exception {
+                    // Use your Customer constructor with contact, email, loyaltyPoints
+                    Customer newCustomer = new Customer(contact, email, 0);
+                    boolean success = customerService.addCustomer(newCustomer);
+
+                    if (success) {
+                        // Get the newly created customer ID by searching
+                        List<Customer> customers = customerService.searchCustomers(contact);
+                        if (!customers.isEmpty()) {
+                            return customers.get(0).getCustomerId();
+                        }
+                    }
+                    return 0;
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        int newCustomerId = get();
+                        if (newCustomerId > 0) {
+                            txtCustomerId.setText(String.valueOf(newCustomerId));
+                            validateCustomer();
+                            dialog.dispose();
+                            showSuccessMessage("Customer Added",
+                                    "New customer created with ID: " + newCustomerId);
+                        } else {
+                            showErrorMessage("Error", "Failed to create customer.");
+                        }
+                    } catch (Exception ex) {
+                        showErrorMessage("Error", "Failed to create customer: " + ex.getMessage());
+                    }
+                }
+            };
+            worker.execute();
+        });
+
+        btnCancel.addActionListener(e -> dialog.dispose());
+
+        buttonPanel.add(btnSave);
+        buttonPanel.add(btnCancel);
+
+        dialog.add(formPanel, BorderLayout.CENTER);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+        dialog.setVisible(true);
     }
 
     private void addToCart() {
@@ -630,7 +752,7 @@ public class SalesUI extends JPanel {
     private int getProductStock(int productId) {
         for (Product product : productList) {
             if (product.getProductId() == productId) {
-                return product.getStockQuantity();
+                return product.getStock();
             }
         }
         return 0;
@@ -658,6 +780,43 @@ public class SalesUI extends JPanel {
 
         int customerId = Integer.parseInt(customerIdStr);
 
+        // Verify customer exists
+        SwingWorker<Boolean, Void> verifyWorker = new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                Customer customer = customerService.getCustomerById(customerId);
+                return customer != null;
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    boolean customerExists = get();
+                    if (!customerExists) {
+                        int option = JOptionPane.showConfirmDialog(SalesUI.this,
+                                "Customer ID " + customerId + " not found.\n" +
+                                        "Would you like to create a new customer?",
+                                "Customer Not Found",
+                                JOptionPane.YES_NO_OPTION);
+
+                        if (option == JOptionPane.YES_OPTION) {
+                            addNewCustomer();
+                        }
+                        return;
+                    }
+
+                    // Continue with checkout
+                    proceedWithCheckout(customerId);
+
+                } catch (Exception e) {
+                    showErrorMessage("Error", "Failed to verify customer: " + e.getMessage());
+                }
+            }
+        };
+        verifyWorker.execute();
+    }
+
+    private void proceedWithCheckout(int customerId) {
         // Ask for payment method
         String[] options = {"Cash", "Credit Card", "Debit Card", "Mobile Payment"};
         String paymentMethod = (String) JOptionPane.showInputDialog(this,
@@ -707,6 +866,12 @@ public class SalesUI extends JPanel {
                             "Sale #" + saleId + " has been saved.\n" +
                                     "Total: $" + String.format("%.2f", currentTotal));
 
+                    // Update customer loyalty points (1 point per $10 spent)
+                    int loyaltyPoints = (int)(currentTotal / 10);
+                    if (loyaltyPoints > 0) {
+                        updateCustomerLoyaltyPoints(customerId, loyaltyPoints);
+                    }
+
                     // Enable receipt generation
                     btnGenerateReceipt.setEnabled(true);
 
@@ -717,6 +882,25 @@ public class SalesUI extends JPanel {
                     showErrorMessage("Checkout Failed",
                             "Failed to process checkout: " + e.getMessage());
                 }
+            }
+        };
+        worker.execute();
+    }
+
+    private void updateCustomerLoyaltyPoints(int customerId, int points) {
+        SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                try {
+                    Customer customer = customerService.getCustomerById(customerId);
+                    if (customer != null) {
+                        customer.setLoyaltyPoints(customer.getLoyaltyPoints() + points);
+                        customerService.updateCustomer(customer);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Failed to update loyalty points: " + e.getMessage());
+                }
+                return null;
             }
         };
         worker.execute();
@@ -804,7 +988,7 @@ public class SalesUI extends JPanel {
 
         // Reset customer info
         txtCustomerId.setText("");
-        lblCustomerName.setText("");
+        lblCustomerInfo.setText("");
 
         // Update sale info
         lblSaleId.setText("New Sale");

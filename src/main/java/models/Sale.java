@@ -55,7 +55,10 @@ public class Sale {
         calculateGrandTotal();
     }
 
-    public double getGrandTotal() { return grandTotal; }
+    public double getGrandTotal() {
+        calculateGrandTotal();
+        return grandTotal;
+    }
 
     public String getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
@@ -81,6 +84,6 @@ public class Sale {
 
     @Override
     public String toString() {
-        return "Sale #" + saleId + " | Customer: " + customerId + " | Total: $" + grandTotal;
+        return "Sale #" + saleId + " | Customer: " + customerId + " | Total: $" + getGrandTotal();
     }
 }

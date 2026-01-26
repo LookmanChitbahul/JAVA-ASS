@@ -2,21 +2,22 @@ package services;
 
 import models.Sale;
 import models.SaleDetail;
-import models.Product;
-import models.Customer;
 import database.DBConnection;
 import utils.PDFUtil;
 
-import javax.swing.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
 public class SalesService {
-    private DBConnection dbConnection;
 
-    public SalesService() {
-        this.dbConnection = DBConnection.getInstance();
+    // Get database connection
+    private Connection getConnection() throws SQLException {
+        Connection conn = DBConnection.getConnection();
+        if (conn == null) {
+            throw new SQLException("Unable to establish database connection");
+        }
+        return conn;
     }
 
     // Create new sale
@@ -27,7 +28,7 @@ public class SalesService {
         ResultSet rs = null;
 
         try {
-            conn = dbConnection.getConnection();
+            conn = getConnection();
             conn.setAutoCommit(false);
 
             // Insert into Sales table
@@ -79,8 +80,8 @@ public class SalesService {
 
                 pstmtDetail.executeBatch();
 
-                // Update product stock
-                updateProductStock(conn, sale.getSaleDetails());
+                // Update product stock using ProductService
+                updateProductStock(sale.getSaleDetails());
             }
 
             conn.commit();
@@ -99,29 +100,30 @@ public class SalesService {
         }
     }
 
-    private void updateProductStock(Connection conn, List<SaleDetail> saleDetails)
-            throws SQLException {
-
-        String sql = "UPDATE Products SET stock_quantity = stock_quantity - ? WHERE product_id = ?";
-        PreparedStatement pstmt = conn.prepareStatement(sql);
+    private void updateProductStock(List<SaleDetail> saleDetails) {
+        ProductService productService = new ProductService();
 
         for (SaleDetail detail : saleDetails) {
-            pstmt.setInt(1, detail.getQuantity());
-            pstmt.setInt(2, detail.getProductId());
-            pstmt.addBatch();
+            try {
+                // Use your ProductService's decreaseStock method
+                boolean success = productService.decreaseStock(detail.getProductId(), detail.getQuantity());
+                if (!success) {
+                    System.err.println("Failed to decrease stock for product ID: " + detail.getProductId());
+                }
+            } catch (Exception e) {
+                System.err.println("Error updating stock for product ID " + detail.getProductId() + ": " + e.getMessage());
+            }
         }
-
-        pstmt.executeBatch();
-        pstmt.close();
     }
 
     // Get sale by ID
     public Sale getSaleById(int saleId) throws SQLException {
-        String sql = "SELECT s.*, c.customer_name FROM Sales s " +
+        String sql = "SELECT s.*, c.contact as customer_contact, c.email as customer_email " +
+                "FROM Sales s " +
                 "LEFT JOIN Customers c ON s.customer_id = c.customer_id " +
                 "WHERE s.sale_id = ?";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, saleId);
@@ -135,7 +137,6 @@ public class SalesService {
                     sale.setTotalAmount(rs.getDouble("total_amount"));
                     sale.setTaxAmount(rs.getDouble("tax_amount"));
                     sale.setDiscountAmount(rs.getDouble("discount_amount"));
-                    sale.setGrandTotal(rs.getDouble("grand_total"));
                     sale.setPaymentMethod(rs.getString("payment_method"));
                     sale.setCreatedBy(rs.getString("created_by"));
 
@@ -154,7 +155,7 @@ public class SalesService {
         List<SaleDetail> details = new ArrayList<>();
         String sql = "SELECT * FROM Sale_Details WHERE sale_id = ?";
 
-        try (Connection conn = dbConnection.getConnection();
+        try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, saleId);
@@ -176,28 +177,6 @@ public class SalesService {
         return details;
     }
 
-    // Get all sales
-    public List<Sale> getAllSales() throws SQLException {
-        List<Sale> sales = new ArrayList<>();
-        String sql = "SELECT * FROM Sales ORDER BY sale_date DESC";
-
-        try (Connection conn = dbConnection.getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                Sale sale = new Sale();
-                sale.setSaleId(rs.getInt("sale_id"));
-                sale.setCustomerId(rs.getInt("customer_id"));
-                sale.setSaleDate(rs.getTimestamp("sale_date"));
-                sale.setTotalAmount(rs.getDouble("total_amount"));
-                sale.setGrandTotal(rs.getDouble("grand_total"));
-                sales.add(sale);
-            }
-        }
-        return sales;
-    }
-
     // Generate receipt PDF
     public boolean generateReceiptPDF(int saleId, String filePath) {
         try {
@@ -206,7 +185,7 @@ public class SalesService {
                 return false;
             }
 
-            return PDFUtil.generateSaleReceipt(sale, filePath);
+            return PDFUtil.generateReceipt(sale, filePath);
 
         } catch (Exception e) {
             e.printStackTrace();
