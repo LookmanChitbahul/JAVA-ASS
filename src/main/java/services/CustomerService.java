@@ -29,8 +29,10 @@ public class CustomerService {
             while (rs.next()) {
                 Customer customer = new Customer(
                     rs.getInt("customer_id"),
+                    rs.getString("full_name"),
                     rs.getString("contact"),
                     rs.getString("email"),
+                    rs.getString("address"),
                     rs.getInt("loyalty_points"),
                     rs.getString("created_at"),
                     rs.getString("updated_at")
@@ -47,14 +49,16 @@ public class CustomerService {
     
     // Add new customer
     public boolean addCustomer(Customer customer) {
-        String query = "INSERT INTO customers (contact, email, loyalty_points, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())";
+        String query = "INSERT INTO customers (full_name, contact, email, address, loyalty_points, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NOW(), NOW())";
         
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             
-            pstmt.setString(1, customer.getContact());
-            pstmt.setString(2, customer.getEmail());
-            pstmt.setInt(3, customer.getLoyaltyPoints());
+            pstmt.setString(1, customer.getFullName());
+            pstmt.setString(2, customer.getContact());
+            pstmt.setString(3, customer.getEmail());
+            pstmt.setString(4, customer.getAddress());
+            pstmt.setInt(5, customer.getLoyaltyPoints());
             
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
@@ -68,15 +72,17 @@ public class CustomerService {
     
     // Update existing customer
     public boolean updateCustomer(Customer customer) {
-        String query = "UPDATE customers SET contact = ?, email = ?, loyalty_points = ?, updated_at = NOW() WHERE customer_id = ?";
+        String query = "UPDATE customers SET full_name = ?, contact = ?, email = ?, address = ?, loyalty_points = ?, updated_at = NOW() WHERE customer_id = ?";
         
         try (Connection conn = getConnection();
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             
-            pstmt.setString(1, customer.getContact());
-            pstmt.setString(2, customer.getEmail());
-            pstmt.setInt(3, customer.getLoyaltyPoints());
-            pstmt.setInt(4, customer.getCustomerId());
+            pstmt.setString(1, customer.getFullName());
+            pstmt.setString(2, customer.getContact());
+            pstmt.setString(3, customer.getEmail());
+            pstmt.setString(4, customer.getAddress());
+            pstmt.setInt(5, customer.getLoyaltyPoints());
+            pstmt.setInt(6, customer.getCustomerId());
             
             int rowsAffected = pstmt.executeUpdate();
             return rowsAffected > 0;
@@ -107,12 +113,14 @@ public class CustomerService {
         }
     }
     
-    // Search customers by contact, email, or ID
+    // Search customers by full name, contact, email, address, or ID
     public List<Customer> searchCustomers(String keyword) {
         List<Customer> customers = new ArrayList<>();
         String query = "SELECT * FROM customers WHERE " +
+                      "full_name LIKE ? OR " +
                       "contact LIKE ? OR " +
                       "email LIKE ? OR " +
+                      "address LIKE ? OR " +
                       "CAST(customer_id AS CHAR) LIKE ? " +
                       "ORDER BY customer_id DESC";
         
@@ -123,19 +131,23 @@ public class CustomerService {
             pstmt.setString(1, searchPattern);
             pstmt.setString(2, searchPattern);
             pstmt.setString(3, searchPattern);
+            pstmt.setString(4, searchPattern);
+            pstmt.setString(5, searchPattern);
             
-            ResultSet rs = pstmt.executeQuery();
-            
-            while (rs.next()) {
-                Customer customer = new Customer(
-                    rs.getInt("customer_id"),
-                    rs.getString("contact"),
-                    rs.getString("email"),
-                    rs.getInt("loyalty_points"),
-                    rs.getString("created_at"),
-                    rs.getString("updated_at")
-                );
-                customers.add(customer);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Customer customer = new Customer(
+                        rs.getInt("customer_id"),
+                        rs.getString("full_name"),
+                        rs.getString("contact"),
+                        rs.getString("email"),
+                        rs.getString("address"),
+                        rs.getInt("loyalty_points"),
+                        rs.getString("created_at"),
+                        rs.getString("updated_at")
+                    );
+                    customers.add(customer);
+                }
             }
         } catch (SQLException e) {
             System.err.println("Error searching customers: " + e.getMessage());
@@ -153,17 +165,20 @@ public class CustomerService {
              PreparedStatement pstmt = conn.prepareStatement(query)) {
             
             pstmt.setInt(1, customerId);
-            ResultSet rs = pstmt.executeQuery();
             
-            if (rs.next()) {
-                return new Customer(
-                    rs.getInt("customer_id"),
-                    rs.getString("contact"),
-                    rs.getString("email"),
-                    rs.getInt("loyalty_points"),
-                    rs.getString("created_at"),
-                    rs.getString("updated_at")
-                );
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return new Customer(
+                        rs.getInt("customer_id"),
+                        rs.getString("full_name"),
+                        rs.getString("contact"),
+                        rs.getString("email"),
+                        rs.getString("address"),
+                        rs.getInt("loyalty_points"),
+                        rs.getString("created_at"),
+                        rs.getString("updated_at")
+                    );
+                }
             }
         } catch (SQLException e) {
             System.err.println("Error fetching customer by ID: " + e.getMessage());
@@ -201,7 +216,8 @@ public class CustomerService {
              ResultSet rs = stmt.executeQuery(query)) {
             
             if (rs.next()) {
-                return rs.getInt("total");
+                Object total = rs.getObject("total");
+                return total != null ? rs.getInt("total") : 0;
             }
         } catch (SQLException e) {
             System.err.println("Error summing loyalty points: " + e.getMessage());

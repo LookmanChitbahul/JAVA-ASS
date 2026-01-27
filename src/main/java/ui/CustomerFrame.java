@@ -7,18 +7,20 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.util.List;
 
-public class CustomerUI extends JPanel {
+public class CustomerFrame extends JFrame {
     private JTable table;
     private DefaultTableModel model;
     private JTextField txtFullName, txtContact, txtEmail, txtAddress, txtPoints, txtSearch;
     private CustomerService service;
 
-    public CustomerUI() {
+    public CustomerFrame() {
         service = new CustomerService();
+        setTitle("Customer Management");
+        setSize(1600, 900);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
         setLayout(new BorderLayout(0, 0));
         setBackground(Color.decode("#111827"));
 
@@ -33,6 +35,7 @@ public class CustomerUI extends JPanel {
         
         add(contentPanel, BorderLayout.CENTER);
         
+        setVisible(true);
         loadTable();
     }
 
@@ -114,8 +117,8 @@ public class CustomerUI extends JPanel {
         table.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(50, 60, 90)));
         table.getTableHeader().setPreferredSize(new Dimension(0, 45));
 
-        table.addMouseListener(new MouseAdapter() {
-            public void mouseClicked(MouseEvent e) {
+        table.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent e) {
                 int row = table.getSelectedRow();
                 if (row >= 0) {
                     txtFullName.setText(model.getValueAt(row, 1).toString());
@@ -233,11 +236,11 @@ public class CustomerUI extends JPanel {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setMargin(new Insets(8, 20, 8, 20));
 
-        btn.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
+        btn.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent e) {
                 btn.setBackground(new Color(37, 99, 235));
             }
-            public void mouseExited(MouseEvent e) {
+            public void mouseExited(java.awt.event.MouseEvent e) {
                 btn.setBackground(new Color(59, 130, 246));
             }
         });
@@ -265,7 +268,7 @@ public class CustomerUI extends JPanel {
         }
     }
 
-    // Rotating gradient header
+    // Rotating gradient header (same as sidebar)
     private static class RotatingGradientHeaderPanel extends JPanel {
         private double angle = 0;
         private final Color color1 = Color.decode("#000428");
@@ -423,5 +426,9 @@ public class CustomerUI extends JPanel {
 
     private void showInfo(String msg) {
         JOptionPane.showMessageDialog(this, msg, "Info", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new CustomerFrame());
     }
 }

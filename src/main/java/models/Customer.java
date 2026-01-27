@@ -2,8 +2,10 @@ package models;
 
 public class Customer {
     private int customerId;
+    private String fullName;
     private String contact;
     private String email;
+    private String address;
     private int loyaltyPoints;
     private String createdAt;
     private String updatedAt;
@@ -14,19 +16,23 @@ public class Customer {
     }
 
     // Constructor with all fields (for database retrieval)
-    public Customer(int customerId, String contact, String email, int loyaltyPoints, String createdAt, String updatedAt) {
+    public Customer(int customerId, String fullName, String contact, String email, String address, int loyaltyPoints, String createdAt, String updatedAt) {
         this.customerId = customerId;
+        this.fullName = fullName;
         this.contact = contact;
         this.email = email;
+        this.address = address;
         this.loyaltyPoints = loyaltyPoints;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
 
     // Constructor without ID (for new customer creation)
-    public Customer(String contact, String email, int loyaltyPoints) {
+    public Customer(String fullName, String contact, String email, String address, int loyaltyPoints) {
+        this.fullName = fullName;
         this.contact = contact;
         this.email = email;
+        this.address = address;
         this.loyaltyPoints = loyaltyPoints;
     }
 
@@ -35,12 +41,20 @@ public class Customer {
         return customerId;
     }
 
+    public String getFullName() {
+        return fullName;
+    }
+
     public String getContact() {
         return contact;
     }
 
     public String getEmail() {
         return email;
+    }
+
+    public String getAddress() {
+        return address;
     }
 
     public int getLoyaltyPoints() {
@@ -60,12 +74,20 @@ public class Customer {
         this.customerId = customerId;
     }
 
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
     public void setContact(String contact) {
         this.contact = contact;
     }
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
     }
 
     public void setLoyaltyPoints(int loyaltyPoints) {
@@ -85,8 +107,10 @@ public class Customer {
     public String toString() {
         return "Customer{" +
                 "customerId=" + customerId +
+                ", fullName='" + fullName + '\'' +
                 ", contact='" + contact + '\'' +
                 ", email='" + email + '\'' +
+                ", address='" + address + '\'' +
                 ", loyaltyPoints=" + loyaltyPoints +
                 ", createdAt='" + createdAt + '\'' +
                 ", updatedAt='" + updatedAt + '\'' +

@@ -1,8 +1,7 @@
-
-
 import database.DBConnection;
 import models.Customer;
 import services.CustomerService;
+
 import java.sql.Connection;
 import java.util.List;
 
@@ -30,8 +29,8 @@ public class CustomerServiceTest {
         // Test 5: Update Customer
         testUpdateCustomer(service);
         
-        // Test 6: Delete Customer (optional - commented out to preserve data)
-        // testDeleteCustomer(service);
+        // Test 6: Delete Customer (optional - uncomment to test deletion)
+        testDeleteCustomer(service);
         
         System.out.println("\n========================================");
         System.out.println("   ALL TESTS COMPLETED");
@@ -45,7 +44,7 @@ public class CustomerServiceTest {
         
         try {
             Connection conn = DBConnection.getConnection();
-            if (conn != null) {
+            if (conn != null && !conn.isClosed()) {
                 System.out.println("✓ SUCCESS: Database connection established");
                 System.out.println("  Database: smart_retail");
                 conn.close();
@@ -68,12 +67,14 @@ public class CustomerServiceTest {
             List<Customer> customers = service.getAllCustomers();
             System.out.println("✓ SUCCESS: Retrieved " + customers.size() + " customers");
             
-            if (customers.size() > 0) {
+            if (!customers.isEmpty()) {
                 System.out.println("\nSample customer data:");
                 Customer first = customers.get(0);
                 System.out.println("  ID: " + first.getCustomerId());
+                System.out.println("  Full Name: " + first.getFullName());
                 System.out.println("  Contact: " + first.getContact());
                 System.out.println("  Email: " + first.getEmail());
+                System.out.println("  Address: " + first.getAddress());
                 System.out.println("  Points: " + first.getLoyaltyPoints());
                 System.out.println("  Created: " + first.getCreatedAt());
                 System.out.println("  Updated: " + first.getUpdatedAt());
@@ -95,16 +96,20 @@ public class CustomerServiceTest {
         try {
             // Create test customer
             Customer testCustomer = new Customer();
-            testCustomer.setContact("Test Customer " + System.currentTimeMillis());
+            testCustomer.setFullName("Test Customer " + System.currentTimeMillis());
+            testCustomer.setContact("555-" + String.format("%04d", System.currentTimeMillis() % 10000));
             testCustomer.setEmail("test" + System.currentTimeMillis() + "@example.com");
+            testCustomer.setAddress("Test Address, City, State");
             testCustomer.setLoyaltyPoints(150);
             
             boolean result = service.addCustomer(testCustomer);
             
             if (result) {
                 System.out.println("✓ SUCCESS: Customer added successfully");
+                System.out.println("  Full Name: " + testCustomer.getFullName());
                 System.out.println("  Contact: " + testCustomer.getContact());
                 System.out.println("  Email: " + testCustomer.getEmail());
+                System.out.println("  Address: " + testCustomer.getAddress());
                 System.out.println("  Points: " + testCustomer.getLoyaltyPoints());
             } else {
                 System.out.println("✗ FAILED: Could not add customer");
@@ -130,12 +135,15 @@ public class CustomerServiceTest {
             System.out.println("  Keyword: '" + searchKeyword + "'");
             System.out.println("  Results found: " + results.size());
             
-            if (results.size() > 0) {
+            if (!results.isEmpty()) {
                 System.out.println("\nFirst result:");
                 Customer first = results.get(0);
                 System.out.println("  ID: " + first.getCustomerId());
+                System.out.println("  Full Name: " + first.getFullName());
                 System.out.println("  Contact: " + first.getContact());
                 System.out.println("  Email: " + first.getEmail());
+            } else {
+                System.out.println("  No results found");
             }
         } catch (Exception e) {
             System.out.println("✗ ERROR: " + e.getMessage());
@@ -153,7 +161,7 @@ public class CustomerServiceTest {
             // Get first customer to update
             List<Customer> customers = service.getAllCustomers();
             
-            if (customers.size() > 0) {
+            if (!customers.isEmpty()) {
                 Customer customer = customers.get(0);
                 int originalPoints = customer.getLoyaltyPoints();
                 
@@ -165,6 +173,7 @@ public class CustomerServiceTest {
                 if (result) {
                     System.out.println("✓ SUCCESS: Customer updated successfully");
                     System.out.println("  ID: " + customer.getCustomerId());
+                    System.out.println("  Full Name: " + customer.getFullName());
                     System.out.println("  Contact: " + customer.getContact());
                     System.out.println("  Old Points: " + originalPoints);
                     System.out.println("  New Points: " + customer.getLoyaltyPoints());
@@ -190,7 +199,7 @@ public class CustomerServiceTest {
             // Search for test customers to delete
             List<Customer> testCustomers = service.searchCustomers("Test Customer");
             
-            if (testCustomers.size() > 0) {
+            if (!testCustomers.isEmpty()) {
                 Customer toDelete = testCustomers.get(0);
                 int deleteId = toDelete.getCustomerId();
                 
@@ -199,35 +208,13 @@ public class CustomerServiceTest {
                 if (result) {
                     System.out.println("✓ SUCCESS: Customer deleted successfully");
                     System.out.println("  Deleted ID: " + deleteId);
+                    System.out.println("  Full Name: " + toDelete.getFullName());
                     System.out.println("  Contact: " + toDelete.getContact());
                 } else {
                     System.out.println("✗ FAILED: Could not delete customer");
                 }
             } else {
                 System.out.println("⚠ SKIPPED: No test customers found to delete");
-            }
-        } catch (Exception e) {
-            System.out.println("✗ ERROR: " + e.getMessage());
-            e.printStackTrace();
-        }
-        System.out.println();
-    }
-    
-    // Bonus: Statistics Test
-    private static void testStatistics(CustomerService service) {
-        System.out.println("BONUS: Customer Statistics");
-        System.out.println("----------------------------");
-        
-        try {
-            int totalCustomers = service.getTotalCustomers();
-            int totalPoints = service.getTotalLoyaltyPoints();
-            
-            System.out.println("✓ Total Customers: " + totalCustomers);
-            System.out.println("✓ Total Loyalty Points: " + totalPoints);
-            
-            if (totalCustomers > 0) {
-                double avgPoints = (double) totalPoints / totalCustomers;
-                System.out.println("✓ Average Points per Customer: " + String.format("%.2f", avgPoints));
             }
         } catch (Exception e) {
             System.out.println("✗ ERROR: " + e.getMessage());
