@@ -1037,17 +1037,51 @@ public class SalesUI extends JPanel {
         JOptionPane.showMessageDialog(this, message, title, JOptionPane.INFORMATION_MESSAGE);
     }
 
-    // Test method
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            JFrame frame = new JFrame("Sales Entry System");
-            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            frame.setSize(1200, 700);
-            frame.setLocationRelativeTo(null);
+//    // Test method
+//    public static void main(String[] args) {
+//        SwingUtilities.invokeLater(() -> {
+//            JFrame frame = new JFrame("Sales Entry System");
+//            frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+//            frame.setSize(1200, 700);
+//            frame.setLocationRelativeTo(null);
+//
+//            SalesUI salesUI = new SalesUI();
+//            frame.add(salesUI);
+//            frame.setVisible(true);
+//        });
+//    }
 
-            SalesUI salesUI = new SalesUI();
-            frame.add(salesUI);
-            frame.setVisible(true);
+
+    //TODO 1.Need to implement the dashboard.ui
+    //TODO 2. Create new customer with id getting error
+    //TODO 3.Generate receipt
+
+
+    // Test method - Add this to SalesUI.java
+    public static void main(String[] args) {
+        System.out.println("🚀 Starting SalesUI Test...");
+
+        SwingUtilities.invokeLater(() -> {
+            try {
+                JFrame frame = new JFrame("Sales Entry System");
+                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                frame.setSize(1200, 700);
+                frame.setLocationRelativeTo(null);
+
+                SalesUI salesUI = new SalesUI();
+                frame.add(salesUI);
+                frame.setVisible(true);
+
+                System.out.println("✅ SalesUI Loaded Successfully!");
+
+            } catch (Exception e) {
+                System.err.println("❌ Error starting SalesUI: " + e.getMessage());
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null,
+                        "Error: " + e.getMessage(),
+                        "Startup Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
         });
     }
 }

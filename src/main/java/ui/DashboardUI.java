@@ -31,7 +31,7 @@ public class DashboardUI  {
         mainContent.setOpaque(true);
 
         // Add external panels to CardLayout
-        mainContent.add(new Account(), "Account"); // real panel
+        mainContent.add(new Account(), "Account"); // real panel   ------Aditya will send later
         mainContent.add(createPlaceholder("Dashboard"), "Dashboard");
         mainContent.add(createPlaceholder("Analytics"), "Analytics");
         mainContent.add(createPlaceholder("sales"), "sales");
