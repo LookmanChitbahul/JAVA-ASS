@@ -7,12 +7,14 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.List;
 
 public class CustomerUI extends JPanel {
     private JTable table;
     private DefaultTableModel model;
-    private JTextField txtContact, txtEmail, txtPoints, txtSearch;
+    private JTextField txtFullName, txtContact, txtEmail, txtAddress, txtPoints, txtSearch;
     private CustomerService service;
 
     public CustomerUI() {
@@ -84,7 +86,7 @@ public class CustomerUI extends JPanel {
         card.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
         model = new DefaultTableModel(
-            new String[]{"ID", "Contact", "Email", "Points", "Created", "Updated"}, 0) {
+            new String[]{"ID", "Full Name", "Contact", "Email", "Address", "Loyalty Points", "Created", "Updated"}, 0) {
             public boolean isCellEditable(int r, int c) { return false; }
         };
 
@@ -112,13 +114,15 @@ public class CustomerUI extends JPanel {
         table.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(50, 60, 90)));
         table.getTableHeader().setPreferredSize(new Dimension(0, 45));
 
-        table.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent e) {
+        table.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
                 int row = table.getSelectedRow();
                 if (row >= 0) {
-                    txtContact.setText(model.getValueAt(row, 1).toString());
-                    txtEmail.setText(model.getValueAt(row, 2).toString());
-                    txtPoints.setText(model.getValueAt(row, 3).toString());
+                    txtFullName.setText(model.getValueAt(row, 1).toString());
+                    txtContact.setText(model.getValueAt(row, 2).toString());
+                    txtEmail.setText(model.getValueAt(row, 3).toString());
+                    txtAddress.setText(model.getValueAt(row, 4).toString());
+                    txtPoints.setText(model.getValueAt(row, 5).toString());
                 }
             }
         });
@@ -143,21 +147,38 @@ public class CustomerUI extends JPanel {
         gbc.insets = new Insets(8, 10, 8, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
+        // Full Name field
         gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
-        fieldsPanel.add(createLabel("Contact:"), gbc);
+        fieldsPanel.add(createLabel("Full Name:"), gbc);
         gbc.gridx = 1; gbc.weightx = 1.0;
+        txtFullName = createTextField(20);
+        fieldsPanel.add(txtFullName, gbc);
+
+        // Contact field
+        gbc.gridx = 2; gbc.weightx = 0;
+        fieldsPanel.add(createLabel("Contact:"), gbc);
+        gbc.gridx = 3; gbc.weightx = 1.0;
         txtContact = createTextField(20);
         fieldsPanel.add(txtContact, gbc);
 
-        gbc.gridx = 2; gbc.weightx = 0;
+        // Email field
+        gbc.gridx = 4; gbc.weightx = 0;
         fieldsPanel.add(createLabel("Email:"), gbc);
-        gbc.gridx = 3; gbc.weightx = 1.5;
+        gbc.gridx = 5; gbc.weightx = 1.5;
         txtEmail = createTextField(25);
         fieldsPanel.add(txtEmail, gbc);
 
-        gbc.gridx = 4; gbc.weightx = 0;
-        fieldsPanel.add(createLabel("Points:"), gbc);
-        gbc.gridx = 5; gbc.weightx = 0.5;
+        // Address field
+        gbc.gridx = 6; gbc.weightx = 0;
+        fieldsPanel.add(createLabel("Address:"), gbc);
+        gbc.gridx = 7; gbc.weightx = 1.0;
+        txtAddress = createTextField(20);
+        fieldsPanel.add(txtAddress, gbc);
+
+        // Loyalty Points field
+        gbc.gridx = 8; gbc.weightx = 0;
+        fieldsPanel.add(createLabel("Loyalty Points:"), gbc);
+        gbc.gridx = 9; gbc.weightx = 0.5;
         txtPoints = createTextField(10);
         fieldsPanel.add(txtPoints, gbc);
 
@@ -212,11 +233,11 @@ public class CustomerUI extends JPanel {
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setMargin(new Insets(8, 20, 8, 20));
 
-        btn.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent e) {
+        btn.addMouseListener(new MouseAdapter() {
+            public void mouseEntered(MouseEvent e) {
                 btn.setBackground(new Color(37, 99, 235));
             }
-            public void mouseExited(java.awt.event.MouseEvent e) {
+            public void mouseExited(MouseEvent e) {
                 btn.setBackground(new Color(59, 130, 246));
             }
         });
@@ -244,7 +265,7 @@ public class CustomerUI extends JPanel {
         }
     }
 
-    // Rotating gradient header (same as sidebar)
+    // Rotating gradient header
     private static class RotatingGradientHeaderPanel extends JPanel {
         private double angle = 0;
         private final Color color1 = Color.decode("#000428");
@@ -288,21 +309,23 @@ public class CustomerUI extends JPanel {
         model.setRowCount(0);
         List<Customer> list = service.getAllCustomers();
         for (Customer c : list) {
-            model.addRow(new Object[]{c.getCustomerId(), c.getContact(), c.getEmail(), 
-                c.getLoyaltyPoints(), c.getCreatedAt(), c.getUpdatedAt()});
+            model.addRow(new Object[]{c.getCustomerId(), c.getFullName(), c.getContact(), c.getEmail(), 
+                c.getAddress(), c.getLoyaltyPoints(), c.getCreatedAt(), c.getUpdatedAt()});
         }
     }
 
     private void addCustomer() {
         try {
-            if (txtContact.getText().trim().isEmpty() || txtEmail.getText().trim().isEmpty()) {
+            if (txtFullName.getText().trim().isEmpty() || txtContact.getText().trim().isEmpty() || txtEmail.getText().trim().isEmpty()) {
                 showError("Please fill all required fields");
                 return;
             }
             Customer c = new Customer();
+            c.setFullName(txtFullName.getText().trim());
             c.setContact(txtContact.getText().trim());
             c.setEmail(txtEmail.getText().trim());
-            c.setLoyaltyPoints(Integer.parseInt(txtPoints.getText().trim()));
+            c.setAddress(txtAddress.getText().trim());
+            c.setLoyaltyPoints(Integer.parseInt(txtPoints.getText().trim().isEmpty() ? "0" : txtPoints.getText().trim()));
             
             if (service.addCustomer(c)) {
                 showSuccess("Customer added successfully!");
@@ -312,7 +335,7 @@ public class CustomerUI extends JPanel {
                 showError("Failed to add customer");
             }
         } catch (NumberFormatException e) {
-            showError("Points must be a valid number");
+            showError("Loyalty Points must be a valid number");
         } catch (Exception e) {
             showError("Error: " + e.getMessage());
         }
@@ -327,9 +350,11 @@ public class CustomerUI extends JPanel {
         try {
             Customer c = new Customer();
             c.setCustomerId(Integer.parseInt(model.getValueAt(row, 0).toString()));
+            c.setFullName(txtFullName.getText().trim());
             c.setContact(txtContact.getText().trim());
             c.setEmail(txtEmail.getText().trim());
-            c.setLoyaltyPoints(Integer.parseInt(txtPoints.getText().trim()));
+            c.setAddress(txtAddress.getText().trim());
+            c.setLoyaltyPoints(Integer.parseInt(txtPoints.getText().trim().isEmpty() ? "0" : txtPoints.getText().trim()));
             
             if (service.updateCustomer(c)) {
                 showSuccess("Customer updated successfully!");
@@ -367,8 +392,8 @@ public class CustomerUI extends JPanel {
         model.setRowCount(0);
         List<Customer> results = key.isEmpty() ? service.getAllCustomers() : service.searchCustomers(key);
         for (Customer c : results) {
-            model.addRow(new Object[]{c.getCustomerId(), c.getContact(), c.getEmail(), 
-                c.getLoyaltyPoints(), c.getCreatedAt(), c.getUpdatedAt()});
+            model.addRow(new Object[]{c.getCustomerId(), c.getFullName(), c.getContact(), c.getEmail(), 
+                c.getAddress(), c.getLoyaltyPoints(), c.getCreatedAt(), c.getUpdatedAt()});
         }
         if (results.isEmpty() && !key.isEmpty()) {
             showInfo("No customers found");
@@ -376,8 +401,10 @@ public class CustomerUI extends JPanel {
     }
 
     private void clearFields() {
+        txtFullName.setText("");
         txtContact.setText("");
         txtEmail.setText("");
+        txtAddress.setText("");
         txtPoints.setText("");
         table.clearSelection();
     }
