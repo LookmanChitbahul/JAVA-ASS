@@ -568,8 +568,12 @@ public class SalesUI extends JPanel {
             SwingWorker<Integer, Void> worker = new SwingWorker<Integer, Void>() {
                 @Override
                 protected Integer doInBackground() throws Exception {
-                    // Use your Customer constructor with contact, email, loyaltyPoints
-                    Customer newCustomer = new Customer(contact, email, 0);
+                    // FIXED: Create Customer using default constructor + setters
+                    Customer newCustomer = new Customer();
+                    newCustomer.setContact(contact);
+                    newCustomer.setEmail(email);
+                    newCustomer.setLoyaltyPoints(0);
+
                     boolean success = customerService.addCustomer(newCustomer);
 
                     if (success) {
