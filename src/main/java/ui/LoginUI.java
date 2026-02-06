@@ -1,12 +1,10 @@
 package ui;
-import database.DBConnection;
+
 import java.awt.*;
 import java.awt.event.*;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import javax.swing.*;
+import services.AuthService;
 
 //gradient rotation on root panel(backgd)
 class RotatingGradientPanel extends JPanel {
@@ -31,7 +29,8 @@ class RotatingGradientPanel extends JPanel {
         setOpaque(true);
         timer = new Timer(25, e -> {
             angle += 2;
-            if (angle >= 360) angle -= 360;
+            if (angle >= 360)
+                angle -= 360;
             repaint();
         });
         timer.start();
@@ -40,12 +39,14 @@ class RotatingGradientPanel extends JPanel {
     @Override
     public void addNotify() {
         super.addNotify();
-        if (timer != null && !timer.isRunning()) timer.start();
+        if (timer != null && !timer.isRunning())
+            timer.start();
     }
 
     @Override
     public void removeNotify() {
-        if (timer != null && timer.isRunning()) timer.stop();
+        if (timer != null && timer.isRunning())
+            timer.stop();
         super.removeNotify();
     }
 
@@ -90,13 +91,13 @@ class GlassPanel extends JPanel {
         int w = getWidth();
         int h = getHeight();
 
-        //  translucent fill ( glass look)
+        // translucent fill ( glass look)
         g2.setColor(fill);
         g2.fillRoundRect(0, 0, w, h, arc, arc);
 
         // faint border for separation
-        g2.setColor(new Color(255,255,255,60));
-        g2.drawRoundRect(0, 0, Math.max(0, w-1), Math.max(0, h-1), arc, arc);
+        g2.setColor(new Color(255, 255, 255, 60));
+        g2.drawRoundRect(0, 0, Math.max(0, w - 1), Math.max(0, h - 1), arc, arc);
 
         g2.dispose();
     }
@@ -115,7 +116,7 @@ class RoundedButton extends JButton {
         super(text);
         this.bg = bg;
         this.arc = arc;
-        //  deep-navy hover color (#000046) and slightly darker pressed color
+        // deep-navy hover color (#000046) and slightly darker pressed color
         this.hoverBg = new Color(0, 0, 70);
         this.pressedBg = new Color(0, 0, 50);
         setOpaque(false);
@@ -127,13 +128,29 @@ class RoundedButton extends JButton {
 
         addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseEntered(MouseEvent e) { hover = true; repaint(); }
+            public void mouseEntered(MouseEvent e) {
+                hover = true;
+                repaint();
+            }
+
             @Override
-            public void mouseExited(MouseEvent e) { hover = false; pressed = false; repaint(); }
+            public void mouseExited(MouseEvent e) {
+                hover = false;
+                pressed = false;
+                repaint();
+            }
+
             @Override
-            public void mousePressed(MouseEvent e) { pressed = true; repaint(); }
+            public void mousePressed(MouseEvent e) {
+                pressed = true;
+                repaint();
+            }
+
             @Override
-            public void mouseReleased(MouseEvent e) { pressed = false; repaint(); }
+            public void mouseReleased(MouseEvent e) {
+                pressed = false;
+                repaint();
+            }
         });
     }
 
@@ -151,13 +168,11 @@ class RoundedButton extends JButton {
         Color borderColor = new Color(darker.getRed(), darker.getGreen(), darker.getBlue(), 200);
         g2.setColor(borderColor);
         g2.setStroke(new BasicStroke(1f));
-        g2.drawRoundRect(0, 0, w-1, h-1, arc, arc);
+        g2.drawRoundRect(0, 0, w - 1, h - 1, arc, arc);
         g2.dispose();
         super.paintComponent(g);
     }
 }
-
-
 
 public class LoginUI {
 
@@ -190,10 +205,9 @@ public class LoginUI {
                 "<html><div style='text-align:center;'><h1 style='color:white;font-size:23px;'>Welcome to Smart Retail & Analytics</h1>"
                         + "<p style='color:white;font-size:12px;'>A university project showcasing modern retail solutions.<br>"
                         + "Integrating data-driven insights, customer engagement,<br>"
-                        + "and efficient operations for a smarter future.</p></div></html>"
-        );
+                        + "and efficient operations for a smarter future.</p></div></html>");
 
-        welcomeLabel.setAlignmentX(Component.CENTER_ALIGNMENT); //content center
+        welcomeLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // content center
 
         leftContent.add(welcomeLabel);
         leftContent.add(Box.createRigidArea(new Dimension(0, 20)));
@@ -212,7 +226,7 @@ public class LoginUI {
         formBox.setMinimumSize(new Dimension(320, 360));
         formBox.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        //login Box header
+        // login Box header
         JLabel signInLabel = new JLabel("Sign In");
         signInLabel.setForeground(Color.BLACK);
         signInLabel.setFont(signInLabel.getFont().deriveFont(Font.BOLD, 20f));
@@ -255,44 +269,68 @@ public class LoginUI {
         signInBtn.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
         signInBtn.setPreferredSize(new Dimension(140, 36));
 
-        //Authenticating user from database........
-        //1.Must add new User manually in database....(to be noted : not create or register user available)
-        //2. use login to verify user from database before proceeding to main dashboard
-        /*3. if present in database(accepted) --> welocome panel   --> proceed to database
-        else if not present.(  Display invalid credentials)...*/
-        
-        signInBtn.addActionListener(e ->{
-            String username = usernameField.getText(); //obtaining user input for username
+        // Authenticating user from database........
+        // 1.Must add new User manually in database....(to be noted : not create or
+        // register user available)
+        // 2. use login to verify user from database before proceeding to main dashboard
+        /*
+         * 3. if present in database(accepted) --> welocome panel --> proceed to
+         * database
+         * else if not present.( Display invalid credentials)...
+         */
+
+        signInBtn.addActionListener(e -> {
+            String username = usernameField.getText(); // obtaining user input for username
             String password = new String(passwordField.getPassword()); // ....for password
 
-            try(Connection conn = DBConnection.getConnection()){
+            AuthService authService = new AuthService();
 
-                String sql = "SELECT * FROM login WHERE username=? AND password =?"; //obtaining present information in database
-                PreparedStatement stmt = conn.prepareStatement(sql);
-                stmt.setString(1,username);
-                stmt.setString(2,password);
-
-                ResultSet rs = stmt.executeQuery();
-                if(rs.next()){
-                    JOptionPane.showMessageDialog(frame, "...Login Succesfull...\n " + " \twelcome  \n"  + username);
-
-                    DashboardUI dashboard = new DashboardUI(); 
-                    dashboard.getFrame().setVisible(true);
-                    frame.dispose();
-                    
-                }else{
-                    JOptionPane.showMessageDialog(frame,"User doesn't exist...Inform respective Deptmnt\n ","Error",JOptionPane.ERROR_MESSAGE);
-                }
-
-            }catch(SQLException ex){
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(frame, "Database Error"+ ex.getMessage(),"Error",JOptionPane.ERROR_MESSAGE);
+            // Validate inputs
+            if (!authService.validateInputs(username, password)) {
+                JOptionPane.showMessageDialog(frame, "Please enter username and password", "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                return;
             }
 
+            try {
+                // Authenticate user
+                if (authService.authenticateUser(username, password)) {
+                    JOptionPane.showMessageDialog(frame, "Login Successful! Welcome " + username, "Success",
+                            JOptionPane.INFORMATION_MESSAGE);
 
-        }
-        );
-        // compose form: header stays at the top, the fields and button vertically centered
+                    // Dispose login frame first
+                    frame.dispose();
+
+                    // Then create and show dashboard
+                    try {
+                        SwingUtilities.invokeLater(() -> {
+                            try {
+                                new DashboardUI(username);
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                                JOptionPane.showMessageDialog(null, "Error loading Dashboard: " + ex.getMessage(),
+                                        "Error", JOptionPane.ERROR_MESSAGE);
+                            }
+                        });
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(frame, "Error launching Dashboard: " + ex.getMessage(), "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(frame, "Username or Password doesnot exist..please contact IT dept",
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(frame, "Database Error: " + ex.getMessage(), "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            } catch (IllegalArgumentException ex) {
+                JOptionPane.showMessageDialog(frame, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        // compose form: header stays at the top, the fields and button vertically
+        // centered
         formBox.add(signInLabel);
         formBox.add(Box.createRigidArea(new Dimension(0, 10)));
         formBox.add(Box.createVerticalGlue());
@@ -324,7 +362,7 @@ public class LoginUI {
         gbc.fill = GridBagConstraints.NONE;
         rightContainer.add(formBox, gbc);
 
-        rootPanel.add(rightContainer); //added right container to the right root screen
+        rootPanel.add(rightContainer); // added right container to the right root screen
 
         frame.setContentPane(rootPanel);
         frame.setVisible(true);
@@ -334,4 +372,3 @@ public class LoginUI {
         SwingUtilities.invokeLater(() -> new LoginUI());
     }
 }
-
