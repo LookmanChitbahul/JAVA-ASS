@@ -9,7 +9,7 @@ public class DBConnection {
     // === DATABASE CONFIGURATION ===
     private static final String URL = "jdbc:mysql://localhost:3306/smart_retail";
     private static final String USER = "root";
-    private static final String PASSWORD = "";  // CHANGED: Was "root@12345678" → Now "" (your actual password)
+    private static final String PASSWORD = "root@12345678";  // CHANGED: Was "root@12345678" → Now "" (your actual password)
     
     private static DBConnection instance;
 

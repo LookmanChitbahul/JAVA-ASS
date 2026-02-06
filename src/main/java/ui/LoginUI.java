@@ -1,12 +1,9 @@
 package ui;
-import database.DBConnection;
 import java.awt.*;
 import java.awt.event.*;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import javax.swing.*;
+import services.AuthService;
 
 //gradient rotation on root panel(backgd)
 class RotatingGradientPanel extends JPanel {
@@ -265,31 +262,45 @@ public class LoginUI {
             String username = usernameField.getText(); //obtaining user input for username
             String password = new String(passwordField.getPassword()); // ....for password
 
-            try(Connection conn = DBConnection.getConnection()){
-
-                String sql = "SELECT * FROM login WHERE username=? AND password =?"; //obtaining present information in database
-                PreparedStatement stmt = conn.prepareStatement(sql);
-                stmt.setString(1,username);
-                stmt.setString(2,password);
-
-                ResultSet rs = stmt.executeQuery();
-                if(rs.next()){
-                    JOptionPane.showMessageDialog(frame, "...Login Succesfull...\n " + " \twelcome  \n"  + username);
-
-                    DashboardUI dashboard = new DashboardUI(); 
-                    dashboard.getFrame().setVisible(true);
-                    frame.dispose();
-                    
-                }else{
-                    JOptionPane.showMessageDialog(frame,"User doesn't exist...Inform respective Deptmnt\n ","Error",JOptionPane.ERROR_MESSAGE);
-                }
-
-            }catch(SQLException ex){
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(frame, "Database Error"+ ex.getMessage(),"Error",JOptionPane.ERROR_MESSAGE);
+            AuthService authService = new AuthService();
+            
+            // Validate inputs
+            if (!authService.validateInputs(username, password)) {
+                JOptionPane.showMessageDialog(frame, "Please enter username and password", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
             }
 
-
+            try {
+                // Authenticate user
+                if (authService.authenticateUser(username, password)) {
+                    JOptionPane.showMessageDialog(frame, "Login Successful! Welcome " + username, "Success", JOptionPane.INFORMATION_MESSAGE);
+                    
+                    // Dispose login frame first
+                    frame.dispose();
+                    
+                    // Then create and show dashboard
+                    try {
+                        SwingUtilities.invokeLater(() -> {
+                            try {
+                                new DashboardUI();
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                                JOptionPane.showMessageDialog(null, "Error loading Dashboard: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                            }
+                        });
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(frame, "Error launching Dashboard: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(frame, "Username or Password doesnot exist..please contact IT dept", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(frame, "Database Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            } catch (IllegalArgumentException ex) {
+                JOptionPane.showMessageDialog(frame, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
         }
         );
         // compose form: header stays at the top, the fields and button vertically centered

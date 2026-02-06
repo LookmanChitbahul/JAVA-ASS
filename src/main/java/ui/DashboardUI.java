@@ -30,14 +30,15 @@ public class DashboardUI  {
         mainContent.setBackground(Color.decode("#111827"));
         mainContent.setOpaque(true);
 
-        // Add external panels to CardLayout
-        mainContent.add(new Account(), "Account"); // real panel   ------Aditya will send later
+        
+        mainContent.add(new Account(), "Account");
         mainContent.add(createPlaceholder("Dashboard"), "Dashboard");
         mainContent.add(createPlaceholder("Analytics"), "Analytics");
         mainContent.add(createPlaceholder("sales"), "sales");
         mainContent.add(createPlaceholder("Setting"), "Setting");
-        mainContent.add(createPlaceholder("Customer"), "Customer");
-        mainContent.add(createPlaceholder("Product"), "Product");
+        mainContent.add(new CustomerUI(), "Customer");
+        mainContent.add(new ProductUI(), "Product");
+      
 
             
 
