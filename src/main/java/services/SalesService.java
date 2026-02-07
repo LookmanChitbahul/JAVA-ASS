@@ -11,16 +11,7 @@ import java.util.List;
 
 public class SalesService {
 
-    // Get database connection
-    private Connection getConnection() throws SQLException {
-        Connection conn = DBConnection.getConnection();
-        if (conn == null) {
-            throw new SQLException("Unable to establish database connection");
-        }
-        return conn;
-    }
-
-    // Create new sale
+    // Create new sale - UPDATED TO MATCH SQL
     public int createSale(Sale sale) throws SQLException {
         Connection conn = null;
         PreparedStatement pstmtSale = null;
@@ -28,22 +19,24 @@ public class SalesService {
         ResultSet rs = null;
 
         try {
-            conn = getConnection();
+            conn = DBConnection.getConnection();
             conn.setAutoCommit(false);
 
-            // Insert into Sales table
-            String sqlSale = "INSERT INTO Sales (customer_id, total_amount, tax_amount, " +
-                    "discount_amount, grand_total, payment_method, created_by) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?)";
+            // Insert into Sales table - MATCHING YOUR SQL SCHEMA
+            String sqlSale = "INSERT INTO Sales (customer_id, user_id, total_amount, " +
+                    "discount, final_amount, payment_method, status, notes, created_by) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             pstmtSale = conn.prepareStatement(sqlSale, Statement.RETURN_GENERATED_KEYS);
             pstmtSale.setInt(1, sale.getCustomerId());
-            pstmtSale.setDouble(2, sale.getTotalAmount());
-            pstmtSale.setDouble(3, sale.getTaxAmount());
-            pstmtSale.setDouble(4, sale.getDiscountAmount());
-            pstmtSale.setDouble(5, sale.getGrandTotal());
+            pstmtSale.setInt(2, sale.getUserId());
+            pstmtSale.setDouble(3, sale.getTotalAmount());
+            pstmtSale.setDouble(4, sale.getDiscount());
+            pstmtSale.setDouble(5, sale.getFinalAmount());
             pstmtSale.setString(6, sale.getPaymentMethod());
-            pstmtSale.setString(7, sale.getCreatedBy());
+            pstmtSale.setString(7, sale.getStatus());
+            pstmtSale.setString(8, sale.getNotes());
+            pstmtSale.setString(9, sale.getCreatedBy());
 
             int rowsAffected = pstmtSale.executeUpdate();
 
@@ -61,27 +54,28 @@ public class SalesService {
                 throw new SQLException("Creating sale failed, no ID obtained.");
             }
 
-            // Insert sale details
+            // Insert sale details - MATCHING YOUR SQL SCHEMA
             if (sale.getSaleDetails() != null && !sale.getSaleDetails().isEmpty()) {
-                String sqlDetail = "INSERT INTO Sale_Details (sale_id, product_id, product_name, " +
-                        "quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?, ?)";
+                String sqlDetail = "INSERT INTO Sale_Details (sale_id, product_id, " +
+                        "quantity, unit_price, total_price, discount) " +
+                        "VALUES (?, ?, ?, ?, ?, ?)";
 
                 pstmtDetail = conn.prepareStatement(sqlDetail);
 
                 for (SaleDetail detail : sale.getSaleDetails()) {
                     pstmtDetail.setInt(1, saleId);
                     pstmtDetail.setInt(2, detail.getProductId());
-                    pstmtDetail.setString(3, detail.getProductName());
-                    pstmtDetail.setInt(4, detail.getQuantity());
-                    pstmtDetail.setDouble(5, detail.getUnitPrice());
-                    pstmtDetail.setDouble(6, detail.getSubtotal());
+                    pstmtDetail.setInt(3, detail.getQuantity());
+                    pstmtDetail.setDouble(4, detail.getUnitPrice());
+                    pstmtDetail.setDouble(5, detail.getTotalPrice());
+                    pstmtDetail.setDouble(6, detail.getDiscount());
                     pstmtDetail.addBatch();
                 }
 
                 pstmtDetail.executeBatch();
 
-                // Update product stock using ProductService
-                updateProductStock(sale.getSaleDetails());
+                // Update product stock
+                updateProductStock(sale.getSaleDetails(), conn);
             }
 
             conn.commit();
@@ -96,88 +90,93 @@ public class SalesService {
             closeResources(rs, pstmtSale, pstmtDetail);
             if (conn != null) {
                 conn.setAutoCommit(true);
+                conn.close();
             }
         }
     }
 
-    private void updateProductStock(List<SaleDetail> saleDetails) {
-        ProductService productService = new ProductService();
+    private void updateProductStock(List<SaleDetail> saleDetails, Connection conn) throws SQLException {
+        String updateQuery = "UPDATE Products SET stock = stock - ? WHERE product_id = ?";
+        PreparedStatement stmt = conn.prepareStatement(updateQuery);
 
         for (SaleDetail detail : saleDetails) {
-            try {
-                // Use your ProductService's decreaseStock method
-                boolean success = productService.decreaseStock(detail.getProductId(), detail.getQuantity());
-                if (!success) {
-                    System.err.println("Failed to decrease stock for product ID: " + detail.getProductId());
-                }
-            } catch (Exception e) {
-                System.err.println("Error updating stock for product ID " + detail.getProductId() + ": " + e.getMessage());
-            }
+            stmt.setInt(1, detail.getQuantity());
+            stmt.setInt(2, detail.getProductId());
+            stmt.addBatch();
         }
+
+        stmt.executeBatch();
+        stmt.close();
     }
 
-    // Get sale by ID
+    // Get sale by ID - UPDATED QUERY
     public Sale getSaleById(int saleId) throws SQLException {
-        String sql = "SELECT s.*, c.contact as customer_contact, c.email as customer_email " +
+        String sql = "SELECT s.*, c.full_name as customer_name, c.contact as customer_contact " +
                 "FROM Sales s " +
-                "LEFT JOIN Customers c ON s.customer_id = c.customer_id " +
+                "LEFT JOIN customers c ON s.customer_id = c.customer_id " +
                 "WHERE s.sale_id = ?";
 
-        try (Connection conn = getConnection();
+        try (Connection conn = DBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, saleId);
+            ResultSet rs = pstmt.executeQuery();
 
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    Sale sale = new Sale();
-                    sale.setSaleId(rs.getInt("sale_id"));
-                    sale.setCustomerId(rs.getInt("customer_id"));
-                    sale.setSaleDate(rs.getTimestamp("sale_date"));
-                    sale.setTotalAmount(rs.getDouble("total_amount"));
-                    sale.setTaxAmount(rs.getDouble("tax_amount"));
-                    sale.setDiscountAmount(rs.getDouble("discount_amount"));
-                    sale.setPaymentMethod(rs.getString("payment_method"));
-                    sale.setCreatedBy(rs.getString("created_by"));
+            if (rs.next()) {
+                Sale sale = new Sale();
+                sale.setSaleId(rs.getInt("sale_id"));
+                sale.setCustomerId(rs.getInt("customer_id"));
+                sale.setUserId(rs.getInt("user_id"));
+                sale.setSaleDate(rs.getTimestamp("sale_date"));
+                sale.setTotalAmount(rs.getDouble("total_amount"));
+                sale.setDiscount(rs.getDouble("discount"));
+                sale.setTotalAmount(rs.getDouble("total_amount"));
+                sale.setDiscount(rs.getDouble("discount"));
+                sale.setPaymentMethod(rs.getString("payment_method"));
+                sale.setStatus(rs.getString("status"));
+                sale.setNotes(rs.getString("notes"));
 
-                    // Load sale details
-                    sale.setSaleDetails(getSaleDetails(saleId));
+                // Load sale details
+                sale.setSaleDetails(getSaleDetails(saleId));
 
-                    return sale;
-                }
+                return sale;
             }
         }
         return null;
     }
 
-    // Get sale details
+    // Get sale details - UPDATED QUERY
     public List<SaleDetail> getSaleDetails(int saleId) throws SQLException {
         List<SaleDetail> details = new ArrayList<>();
-        String sql = "SELECT * FROM Sale_Details WHERE sale_id = ?";
+        String sql = "SELECT sd.*, p.name as product_name " +
+                "FROM Sale_Details sd " +
+                "JOIN Products p ON sd.product_id = p.product_id " +
+                "WHERE sd.sale_id = ?";
 
-        try (Connection conn = getConnection();
+        try (Connection conn = DBConnection.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, saleId);
+            ResultSet rs = pstmt.executeQuery();
 
-            try (ResultSet rs = pstmt.executeQuery()) {
-                while (rs.next()) {
-                    SaleDetail detail = new SaleDetail();
-                    detail.setDetailId(rs.getInt("detail_id"));
-                    detail.setSaleId(rs.getInt("sale_id"));
-                    detail.setProductId(rs.getInt("product_id"));
-                    detail.setProductName(rs.getString("product_name"));
-                    detail.setQuantity(rs.getInt("quantity"));
-                    detail.setUnitPrice(rs.getDouble("unit_price"));
-                    detail.setSubtotal(rs.getDouble("subtotal"));
-                    details.add(detail);
-                }
+            while (rs.next()) {
+                SaleDetail detail = new SaleDetail();
+                detail.setSaleDetailId(rs.getInt("sale_detail_id"));
+                detail.setSaleId(rs.getInt("sale_id"));
+                detail.setProductId(rs.getInt("product_id"));
+                detail.setProductName(rs.getString("product_name"));
+                detail.setQuantity(rs.getInt("quantity"));
+                detail.setUnitPrice(rs.getDouble("unit_price"));
+                detail.setTotalPrice(rs.getDouble("total_price"));
+                detail.setDiscount(rs.getDouble("discount"));
+                detail.setCreatedAt(rs.getTimestamp("created_at"));
+                details.add(detail);
             }
         }
         return details;
     }
 
-    // Generate receipt PDF
+    // Generate receipt PDF - This might need updating too
     public boolean generateReceiptPDF(int saleId, String filePath) {
         try {
             Sale sale = getSaleById(saleId);

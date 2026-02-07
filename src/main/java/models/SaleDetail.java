@@ -1,13 +1,17 @@
 package models;
 
+import java.sql.Timestamp;
+
 public class SaleDetail {
-    private int detailId;
+    private int saleDetailId;
     private int saleId;
     private int productId;
     private String productName;
     private int quantity;
     private double unitPrice;
-    private double subtotal;
+    private double totalPrice;
+    private double discount;
+    private Timestamp createdAt;
 
     // Constructors
     public SaleDetail() {}
@@ -17,12 +21,12 @@ public class SaleDetail {
         this.productName = productName;
         this.unitPrice = unitPrice;
         this.quantity = quantity;
-        this.subtotal = unitPrice * quantity;
+        calculateTotalPrice();
     }
 
     // Getters and Setters
-    public int getDetailId() { return detailId; }
-    public void setDetailId(int detailId) { this.detailId = detailId; }
+    public int getSaleDetailId() { return saleDetailId; }
+    public void setSaleDetailId(int saleDetailId) { this.saleDetailId = saleDetailId; }
 
     public int getSaleId() { return saleId; }
     public void setSaleId(int saleId) { this.saleId = saleId; }
@@ -36,20 +40,38 @@ public class SaleDetail {
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) {
         this.quantity = quantity;
-        this.subtotal = quantity * unitPrice;
+        calculateTotalPrice();
     }
 
     public double getUnitPrice() { return unitPrice; }
     public void setUnitPrice(double unitPrice) {
         this.unitPrice = unitPrice;
-        this.subtotal = quantity * unitPrice;
+        calculateTotalPrice();
     }
 
-    public double getSubtotal() { return subtotal; }
-    public void setSubtotal(double subtotal) { this.subtotal = subtotal; }
+    public double getTotalPrice() {
+        calculateTotalPrice(); // Ensure it's calculated
+        return totalPrice;
+    }
+
+    public void setTotalPrice(double totalPrice) { this.totalPrice = totalPrice; }
+
+    public double getDiscount() { return discount; }
+    public void setDiscount(double discount) {
+        this.discount = discount;
+        calculateTotalPrice();
+    }
+
+    public Timestamp getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
 
     // Business logic
-    public void updateSubtotal() {
-        this.subtotal = quantity * unitPrice;
+    private void calculateTotalPrice() {
+        this.totalPrice = (unitPrice * quantity) - discount;
+    }
+
+    @Override
+    public String toString() {
+        return productName + " x" + quantity + " @ $" + unitPrice + " = $" + getTotalPrice();
     }
 }
