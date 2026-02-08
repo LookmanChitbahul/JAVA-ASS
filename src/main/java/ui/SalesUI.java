@@ -38,6 +38,16 @@ public class SalesUI extends JPanel {
     private JTextField txtCustomerId;
     private JLabel lblCustomerInfo;
 
+    // New Cash Handling Components
+    private JLabel lblAmountDue;
+    private JTextField txtCashReceived;
+    private JLabel lblChangeDue;
+    private JButton btnCalculateChange;
+    private JButton btnViewCashSummary;
+
+    // Summary panel reference
+    private JPanel panel;
+
     // Buttons
     private JButton btnAddToCart;
     private JButton btnRemoveItem;
@@ -54,15 +64,16 @@ public class SalesUI extends JPanel {
     private int currentSaleId = 0;
 
     // Colors matching your theme
-    private static final Color DARK_BG = new Color(17, 24, 39);           // #111827
-    private static final Color CARD_BG = new Color(30, 41, 59);           // Dark Blue Card
-    private static final Color PRIMARY_COLOR = new Color(59, 130, 246);   // Bright Blue
-    private static final Color SUCCESS_COLOR = new Color(34, 197, 94);    // Green
-    private static final Color DANGER_COLOR = new Color(239, 68, 68);     // Red
-    private static final Color WARNING_COLOR = new Color(251, 146, 60);   // Orange
-    private static final Color TEXT_PRIMARY = new Color(241, 245, 249);   // Light Text
-    private static final Color TEXT_SECONDARY = new Color(148, 163, 184); // Gray Text
-    private static final Color BORDER_COLOR = new Color(55, 65, 81);      // Gray Border
+    private static final Color DARK_BG = new Color(17, 24, 39);
+    private static final Color CARD_BG = new Color(30, 41, 59);
+    private static final Color PRIMARY_COLOR = new Color(59, 130, 246);
+    private static final Color SUCCESS_COLOR = new Color(34, 197, 94);
+    private static final Color DANGER_COLOR = new Color(239, 68, 68);
+    private static final Color WARNING_COLOR = new Color(251, 146, 60);
+    private static final Color TEXT_PRIMARY = new Color(241, 245, 249);
+    private static final Color TEXT_SECONDARY = new Color(148, 163, 184);
+    private static final Color BORDER_COLOR = new Color(55, 65, 81);
+    private static final Color INFO_COLOR = new Color(56, 189, 248);
 
     public SalesUI() {
         // Initialize services
@@ -123,6 +134,11 @@ public class SalesUI extends JPanel {
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         subtitle.setForeground(new Color(220, 220, 220));
 
+        // Cash summary button
+        btnViewCashSummary = createButton("💰 Daily Cash Summary", INFO_COLOR);
+        btnViewCashSummary.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnViewCashSummary.addActionListener(e -> showCashSummary());
+
         JPanel textPanel = new JPanel();
         textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
         textPanel.setOpaque(false);
@@ -143,6 +159,8 @@ public class SalesUI extends JPanel {
         lblDate.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblDate.setForeground(new Color(200, 200, 200));
 
+        infoPanel.add(btnViewCashSummary);
+        infoPanel.add(Box.createVerticalStrut(10));
         infoPanel.add(lblSaleNo);
         infoPanel.add(Box.createVerticalStrut(5));
         infoPanel.add(lblDate);
@@ -354,18 +372,56 @@ public class SalesUI extends JPanel {
     }
 
     private JPanel createSummaryPanel() {
-        JPanel panel = new RoundedPanel(15);
+        panel = new RoundedPanel(15);
         panel.setLayout(new BorderLayout(20, 0));
         panel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
 
-        // Payment method
-        JPanel paymentPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        // Payment method and cash handling section
+        JPanel paymentPanel = new JPanel(new GridBagLayout());
         paymentPanel.setOpaque(false);
 
-        paymentPanel.add(new JLabel("Payment Method:"));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Payment Method
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
+        paymentPanel.add(createLabel("Payment Method:"), gbc);
+
+        gbc.gridx = 1; gbc.weightx = 0.3;
         cmbPaymentMethod = new JComboBox<>(new String[]{"Cash", "Credit Card", "Debit Card", "Mobile Payment"});
         styleComboBox(cmbPaymentMethod);
-        paymentPanel.add(cmbPaymentMethod);
+        cmbPaymentMethod.addActionListener(e -> toggleCashFields());
+        paymentPanel.add(cmbPaymentMethod, gbc);
+
+        // Cash Received (only visible for Cash payment)
+        gbc.gridx = 2; gbc.weightx = 0;
+        lblAmountDue = new JLabel("Amount Due:");
+        lblAmountDue.setForeground(TEXT_SECONDARY);
+        lblAmountDue.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblAmountDue.setVisible(false);
+        paymentPanel.add(lblAmountDue, gbc);
+
+        gbc.gridx = 3; gbc.weightx = 0.2;
+        txtCashReceived = createTextField(10);
+        txtCashReceived.setVisible(false);
+        txtCashReceived.addActionListener(e -> calculateChange());
+        paymentPanel.add(txtCashReceived, gbc);
+
+        // Calculate Change Button
+        gbc.gridx = 4; gbc.weightx = 0;
+        btnCalculateChange = createButton("Calculate Change", INFO_COLOR);
+        btnCalculateChange.setVisible(false);
+        btnCalculateChange.addActionListener(e -> calculateChange());
+        paymentPanel.add(btnCalculateChange, gbc);
+
+        // Change Due Label
+        gbc.gridx = 5; gbc.weightx = 0.2;
+        lblChangeDue = new JLabel("Change: $0.00");
+        lblChangeDue.setForeground(SUCCESS_COLOR);
+        lblChangeDue.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblChangeDue.setVisible(false);
+        paymentPanel.add(lblChangeDue, gbc);
 
         panel.add(paymentPanel, BorderLayout.WEST);
 
@@ -396,6 +452,62 @@ public class SalesUI extends JPanel {
         panel.add(actionPanel, BorderLayout.EAST);
 
         return panel;
+    }
+
+    // Toggle cash fields visibility based on payment method
+    private void toggleCashFields() {
+        boolean isCash = "Cash".equals(cmbPaymentMethod.getSelectedItem());
+        lblAmountDue.setVisible(isCash);
+        txtCashReceived.setVisible(isCash);
+        btnCalculateChange.setVisible(isCash);
+        lblChangeDue.setVisible(isCash);
+
+        if (isCash) {
+            updateAmountDueLabel();
+        }
+
+        if (panel != null) {
+            panel.revalidate();
+            panel.repaint();
+        }
+    }
+
+    private void updateAmountDueLabel() {
+        double grandTotal = calculateGrandTotal();
+        lblAmountDue.setText(String.format("Amount Due: $%.2f", grandTotal));
+    }
+
+    private double calculateGrandTotal() {
+        double tax = currentSubtotal * TAX_RATE;
+        return currentSubtotal + tax;
+    }
+
+    private void calculateChange() {
+        try {
+            double grandTotal = calculateGrandTotal();
+            String cashStr = txtCashReceived.getText().trim();
+
+            if (cashStr.isEmpty()) {
+                lblChangeDue.setText("Change: $0.00");
+                return;
+            }
+
+            double cashReceived = Double.parseDouble(cashStr);
+
+            if (cashReceived < grandTotal) {
+                lblChangeDue.setForeground(DANGER_COLOR);
+                lblChangeDue.setText(String.format("Insufficient: $%.2f", grandTotal - cashReceived));
+                return;
+            }
+
+            double change = cashReceived - grandTotal;
+            lblChangeDue.setForeground(SUCCESS_COLOR);
+            lblChangeDue.setText(String.format("Change: $%.2f", change));
+
+        } catch (NumberFormatException e) {
+            lblChangeDue.setForeground(DANGER_COLOR);
+            lblChangeDue.setText("Invalid amount");
+        }
     }
 
     // Helper methods matching your style
@@ -663,6 +775,12 @@ public class SalesUI extends JPanel {
         lblSubtotal.setText(String.format("$%.2f", currentSubtotal));
         lblTax.setText(String.format("$%.2f", tax));
         lblGrandTotal.setText(String.format("$%.2f", grandTotal));
+
+        // Update amount due label if cash payment is selected
+        if ("Cash".equals(cmbPaymentMethod.getSelectedItem())) {
+            updateAmountDueLabel();
+            calculateChange();
+        }
     }
 
     private int getProductStock(int productId) {
@@ -791,18 +909,55 @@ public class SalesUI extends JPanel {
         int customerId = Integer.parseInt(customerIdStr);
         String paymentMethod = (String) cmbPaymentMethod.getSelectedItem();
 
-        // Create Sale object with UPDATED fields
+        // Cash validation
+        Double cashReceived = null;
+        Double changeGiven = null;
+
+        if ("Cash".equals(paymentMethod)) {
+            String cashStr = txtCashReceived.getText().trim();
+            if (cashStr.isEmpty()) {
+                showError("Please enter cash received amount");
+                txtCashReceived.requestFocus();
+                return;
+            }
+
+            try {
+                cashReceived = Double.parseDouble(cashStr);
+                double grandTotal = calculateGrandTotal();
+
+                if (cashReceived < grandTotal) {
+                    showError("Cash received is less than total amount");
+                    txtCashReceived.requestFocus();
+                    return;
+                }
+
+                changeGiven = cashReceived - grandTotal;
+                lblChangeDue.setText(String.format("Change: $%.2f", changeGiven));
+
+            } catch (NumberFormatException e) {
+                showError("Invalid cash amount");
+                txtCashReceived.requestFocus();
+                return;
+            }
+        }
+
+        // Create Sale object
         Sale sale = new Sale(customerId, currentSubtotal);
-        sale.setUserId(1);  // Set a default user ID (you can get this from login)
-        sale.setDiscount(0.0);  // No discount for now
-        sale.setDiscount(0.0);  // No discount
-        sale.setTotalAmount(currentSubtotal);  // This will auto-calculate finalAmount
+        sale.setUserId(1);
+        sale.setDiscount(0.0);
+        sale.setTotalAmount(currentSubtotal);
         sale.setPaymentMethod(paymentMethod);
         sale.setStatus("Completed");
         sale.setNotes("Sale from SalesUI");
         sale.setCreatedBy("SalesUI");
 
-        // Create SaleDetails with UPDATED fields
+        // Set cash fields if cash payment
+        if ("Cash".equals(paymentMethod)) {
+            sale.setCashReceived(cashReceived);
+            sale.setChangeGiven(changeGiven);
+        }
+
+        // Create SaleDetails
         List<SaleDetail> saleDetails = new ArrayList<>();
         for (CartItem cartItem : cartItems) {
             SaleDetail detail = new SaleDetail(
@@ -811,13 +966,17 @@ public class SalesUI extends JPanel {
                     cartItem.unitPrice,
                     cartItem.quantity
             );
-            detail.setTotalPrice(cartItem.getSubtotal());  // Use setTotalPrice not setSubtotal
-            detail.setDiscount(0.0);  // No discount
+            detail.setTotalPrice(cartItem.getSubtotal());
+            detail.setDiscount(0.0);
             saleDetails.add(detail);
         }
         sale.setSaleDetails(saleDetails);
 
-        // Process checkout
+        // Process checkout - Use final copies for inner class
+        final String finalPaymentMethod = paymentMethod;
+        final Double finalCashReceived = cashReceived;
+        final Double finalChangeGiven = changeGiven;
+
         SwingWorker<Integer, Void> worker = new SwingWorker<Integer, Void>() {
             @Override
             protected Integer doInBackground() throws Exception {
@@ -830,20 +989,36 @@ public class SalesUI extends JPanel {
                     int saleId = get();
                     currentSaleId = saleId;
 
-                    showSuccess("Checkout successful! Sale #" + saleId);
+                    SwingUtilities.invokeLater(() -> {
+                        // Show cash summary if cash payment
+                        if ("Cash".equals(finalPaymentMethod)) {
+                            showSuccess(String.format(
+                                    "Checkout successful! Sale #%d\nCash: $%.2f | Change: $%.2f",
+                                    saleId, finalCashReceived, finalChangeGiven
+                            ));
+                        } else {
+                            showSuccess("Checkout successful! Sale #" + saleId);
+                        }
 
-                    // Enable receipt generation
-                    btnGenerateReceipt.setEnabled(true);
-                    btnCheckout.setEnabled(false);
+                        // Enable receipt generation
+                        btnGenerateReceipt.setEnabled(true);
+                        btnCheckout.setEnabled(false);
 
-                    // Clear cart for next sale
-                    cartItems.clear();
-                    updateCartTable();
-                    calculateTotals();
+                        // Clear cart for next sale
+                        cartItems.clear();
+                        updateCartTable();
+                        calculateTotals();
+
+                        // Clear cash fields
+                        txtCashReceived.setText("");
+                        lblChangeDue.setText("Change: $0.00");
+                    });
 
                 } catch (Exception e) {
-                    showError("Checkout failed: " + e.getMessage());
-                    e.printStackTrace();  // Add this for debugging
+                    SwingUtilities.invokeLater(() -> {
+                        showError("Checkout failed: " + e.getMessage());
+                        e.printStackTrace();
+                    });
                 }
             }
         };
@@ -899,6 +1074,51 @@ public class SalesUI extends JPanel {
             };
             worker.execute();
         }
+    }
+
+    private void showCashSummary() {
+        SwingWorker<List<Object[]>, Void> worker = new SwingWorker<List<Object[]>, Void>() {
+            @Override
+            protected List<Object[]> doInBackground() throws Exception {
+                return salesService.getTodayCashSummary();
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    List<Object[]> summary = get();
+                    if (!summary.isEmpty()) {
+                        Object[] data = summary.get(0);
+
+                        String message = String.format(
+                                "💰 DAILY CASH SUMMARY\n" +
+                                        "─────────────────────────\n" +
+                                        "Transactions: %d\n" +
+                                        "Cash Received: $%.2f\n" +
+                                        "Change Given: $%.2f\n" +
+                                        "Net Cash: $%.2f\n" +
+                                        "─────────────────────────\n" +
+                                        "Date: %s",
+                                (Integer) data[0],
+                                (Double) data[1],
+                                (Double) data[2],
+                                (Double) data[3],
+                                new SimpleDateFormat("dd-MMM-yyyy").format(new Date())
+                        );
+
+                        JOptionPane.showMessageDialog(SalesUI.this,
+                                message,
+                                "Daily Cash Summary",
+                                JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        showInfo("No cash transactions today");
+                    }
+                } catch (Exception e) {
+                    showError("Error fetching cash summary: " + e.getMessage());
+                }
+            }
+        };
+        worker.execute();
     }
 
     // Helper classes matching your style

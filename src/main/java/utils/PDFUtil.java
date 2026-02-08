@@ -22,7 +22,7 @@ public class PDFUtil {
         try {
             // Create a new document
             document = new PDDocument();
-            PDPage page = new PDPage(PDRectangle.A4);
+            PDPage page = new PDPage(new PDRectangle(300, 600)); // Narrow receipt size
             document.addPage(page);
 
             // Prepare content stream
@@ -33,218 +33,343 @@ public class PDFUtil {
             PDType1Font headerFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
             PDType1Font normalFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
             PDType1Font smallFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);
+            PDType1Font boldFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
 
             // Set margins
-            float margin = 50;
-            float yPosition = 750; // Start from top
-            float lineHeight = 14;
-            float tableY = yPosition;
+            float margin = 15;
+            float yPosition = 580; // Start from top
+            float lineHeight = 12;
+            float centerX = 150; // Center of 300 width page
 
-            // Add title
+            // Store header
             contentStream.beginText();
-            contentStream.setFont(titleFont, 18);
-            contentStream.newLineAtOffset(margin, yPosition);
-            contentStream.showText("SALES RECEIPT");
-            contentStream.endText();
-            yPosition -= 30;
-
-            // Add receipt details
-            contentStream.beginText();
-            contentStream.setFont(headerFont, 10);
-            contentStream.newLineAtOffset(margin, yPosition);
-            contentStream.showText("Receipt #: " + sale.getSaleId());
-            contentStream.endText();
-            yPosition -= lineHeight;
-
-            contentStream.beginText();
-            contentStream.setFont(normalFont, 10);
-            contentStream.newLineAtOffset(margin, yPosition);
-            contentStream.showText("Date: " + new SimpleDateFormat("dd-MMM-yyyy HH:mm:ss").format(sale.getSaleDate()));
-            contentStream.endText();
-            yPosition -= lineHeight;
-
-            contentStream.beginText();
-            contentStream.setFont(normalFont, 10);
-            contentStream.newLineAtOffset(margin, yPosition);
-            contentStream.showText("Customer ID: " + sale.getCustomerId());
-            contentStream.endText();
-            yPosition -= lineHeight;
-
-            contentStream.beginText();
-            contentStream.setFont(normalFont, 10);
-            contentStream.newLineAtOffset(margin, yPosition);
-            contentStream.showText("Payment Method: " + sale.getPaymentMethod());
+            contentStream.setFont(titleFont, 16);
+            contentStream.newLineAtOffset(centerX - 60, yPosition);
+            contentStream.showText("SUPERMART STORE");
             contentStream.endText();
             yPosition -= 20;
 
-            // Draw a line
+            contentStream.beginText();
+            contentStream.setFont(normalFont, 10);
+            contentStream.newLineAtOffset(centerX - 70, yPosition);
+            contentStream.showText("123 Main Street, City");
+            contentStream.endText();
+            yPosition -= 15;
+
+            contentStream.beginText();
+            contentStream.setFont(normalFont, 10);
+            contentStream.newLineAtOffset(centerX - 60, yPosition);
+            contentStream.showText("Tel: (123) 456-7890");
+            contentStream.endText();
+            yPosition -= 20;
+
+            // Separator line
             contentStream.moveTo(margin, yPosition);
-            contentStream.lineTo(margin + 500, yPosition);
+            contentStream.lineTo(300 - margin, yPosition);
             contentStream.stroke();
             yPosition -= 20;
+
+            // Receipt header
+            contentStream.beginText();
+            contentStream.setFont(headerFont, 12);
+            contentStream.newLineAtOffset(centerX - 40, yPosition);
+            contentStream.showText("SALES RECEIPT");
+            contentStream.endText();
+            yPosition -= 20;
+
+            // Receipt details in two columns
+            float leftCol = margin;
+            float rightCol = 150;
+
+            // Sale number
+            contentStream.beginText();
+            contentStream.setFont(boldFont, 10);
+            contentStream.newLineAtOffset(leftCol, yPosition);
+            contentStream.showText("Receipt #:");
+            contentStream.endText();
+
+            contentStream.beginText();
+            contentStream.setFont(normalFont, 10);
+            contentStream.newLineAtOffset(rightCol, yPosition);
+            contentStream.showText(String.valueOf(sale.getSaleId()));
+            contentStream.endText();
+            yPosition -= lineHeight;
+
+            // Date
+            contentStream.beginText();
+            contentStream.setFont(boldFont, 10);
+            contentStream.newLineAtOffset(leftCol, yPosition);
+            contentStream.showText("Date:");
+            contentStream.endText();
+
+            contentStream.beginText();
+            contentStream.setFont(normalFont, 10);
+            contentStream.newLineAtOffset(rightCol, yPosition);
+            contentStream.showText(new SimpleDateFormat("dd/MM/yyyy").format(sale.getSaleDate()));
+            contentStream.endText();
+            yPosition -= lineHeight;
+
+            // Time
+            contentStream.beginText();
+            contentStream.setFont(boldFont, 10);
+            contentStream.newLineAtOffset(leftCol, yPosition);
+            contentStream.showText("Time:");
+            contentStream.endText();
+
+            contentStream.beginText();
+            contentStream.setFont(normalFont, 10);
+            contentStream.newLineAtOffset(rightCol, yPosition);
+            contentStream.showText(new SimpleDateFormat("HH:mm:ss").format(sale.getSaleDate()));
+            contentStream.endText();
+            yPosition -= lineHeight;
+
+            // Customer
+            contentStream.beginText();
+            contentStream.setFont(boldFont, 10);
+            contentStream.newLineAtOffset(leftCol, yPosition);
+            contentStream.showText("Customer ID:");
+            contentStream.endText();
+
+            contentStream.beginText();
+            contentStream.setFont(normalFont, 10);
+            contentStream.newLineAtOffset(rightCol, yPosition);
+            contentStream.showText(String.valueOf(sale.getCustomerId()));
+            contentStream.endText();
+            yPosition -= lineHeight;
+
+            // Payment method
+            contentStream.beginText();
+            contentStream.setFont(boldFont, 10);
+            contentStream.newLineAtOffset(leftCol, yPosition);
+            contentStream.showText("Payment:");
+            contentStream.endText();
+
+            contentStream.beginText();
+            contentStream.setFont(normalFont, 10);
+            contentStream.newLineAtOffset(rightCol, yPosition);
+            contentStream.showText(sale.getPaymentMethod());
+            contentStream.endText();
+            yPosition -= 20;
+
+            // Separator
+            contentStream.moveTo(margin, yPosition);
+            contentStream.lineTo(300 - margin, yPosition);
+            contentStream.stroke();
+            yPosition -= 15;
 
             // Table header
             contentStream.beginText();
             contentStream.setFont(headerFont, 10);
             contentStream.newLineAtOffset(margin, yPosition);
-            contentStream.showText("No.");
+            contentStream.showText("QTY");
             contentStream.endText();
 
             contentStream.beginText();
             contentStream.setFont(headerFont, 10);
-            contentStream.newLineAtOffset(margin + 30, yPosition);
-            contentStream.showText("Description");
+            contentStream.newLineAtOffset(margin + 40, yPosition);
+            contentStream.showText("DESCRIPTION");
             contentStream.endText();
 
             contentStream.beginText();
             contentStream.setFont(headerFont, 10);
-            contentStream.newLineAtOffset(margin + 200, yPosition);
-            contentStream.showText("Qty");
+            contentStream.newLineAtOffset(margin + 180, yPosition);
+            contentStream.showText("AMOUNT");
             contentStream.endText();
+            yPosition -= 15;
 
-            contentStream.beginText();
-            contentStream.setFont(headerFont, 10);
-            contentStream.newLineAtOffset(margin + 250, yPosition);
-            contentStream.showText("Price");
-            contentStream.endText();
-
-            contentStream.beginText();
-            contentStream.setFont(headerFont, 10);
-            contentStream.newLineAtOffset(margin + 320, yPosition);
-            contentStream.showText("Amount");
-            contentStream.endText();
-
-            yPosition -= lineHeight;
-
-            // Draw header line
+            // Header line
             contentStream.moveTo(margin, yPosition);
-            contentStream.lineTo(margin + 500, yPosition);
+            contentStream.lineTo(300 - margin, yPosition);
             contentStream.stroke();
             yPosition -= 10;
 
             // Add sale items
-            int itemNo = 1;
             double subtotal = 0;
-
             if (sale.getSaleDetails() != null) {
                 for (SaleDetail detail : sale.getSaleDetails()) {
+                    // Check if we need a new page
+                    if (yPosition < 150) {
+                        contentStream.close();
+                        PDPage newPage = new PDPage(new PDRectangle(300, 600));
+                        document.addPage(newPage);
+                        contentStream = new PDPageContentStream(document, newPage);
+                        yPosition = 580;
+                    }
+
+                    // Quantity
                     contentStream.beginText();
                     contentStream.setFont(normalFont, 9);
                     contentStream.newLineAtOffset(margin, yPosition);
-                    contentStream.showText(String.valueOf(itemNo++));
-                    contentStream.endText();
-
-                    contentStream.beginText();
-                    contentStream.setFont(normalFont, 9);
-                    contentStream.newLineAtOffset(margin + 30, yPosition);
-                    contentStream.showText(detail.getProductName());
-                    contentStream.endText();
-
-                    contentStream.beginText();
-                    contentStream.setFont(normalFont, 9);
-                    contentStream.newLineAtOffset(margin + 200, yPosition);
                     contentStream.showText(String.valueOf(detail.getQuantity()));
                     contentStream.endText();
 
+                    // Product name (truncate if too long)
+                    String productName = detail.getProductName();
+                    if (productName.length() > 20) {
+                        productName = productName.substring(0, 20) + "...";
+                    }
+
                     contentStream.beginText();
                     contentStream.setFont(normalFont, 9);
-                    contentStream.newLineAtOffset(margin + 250, yPosition);
+                    contentStream.newLineAtOffset(margin + 40, yPosition);
+                    contentStream.showText(productName);
+                    contentStream.endText();
+
+                    // Price
+                    contentStream.beginText();
+                    contentStream.setFont(normalFont, 9);
+                    contentStream.newLineAtOffset(margin + 180, yPosition);
                     contentStream.showText(String.format("$%.2f", detail.getUnitPrice()));
                     contentStream.endText();
-
-                    contentStream.beginText();
-                    contentStream.setFont(normalFont, 9);
-                    contentStream.newLineAtOffset(margin + 320, yPosition);
-                    contentStream.showText(String.format("$%.2f", detail.getTotalPrice()));
-                    contentStream.endText();
-
-                    subtotal += detail.getTotalPrice();
                     yPosition -= lineHeight;
 
-                    // Break if page is full
-                    if (yPosition < 100) {
-                        contentStream.close();
-                        PDPage newPage = new PDPage(PDRectangle.A4);
-                        document.addPage(newPage);
-                        contentStream = new PDPageContentStream(document, newPage);
-                        yPosition = 750;
-                    }
+                    // Subtotal for this item
+                    contentStream.beginText();
+                    contentStream.setFont(normalFont, 8);
+                    contentStream.newLineAtOffset(margin + 160, yPosition);
+                    contentStream.showText("x" + detail.getQuantity() + " =");
+                    contentStream.endText();
+
+                    contentStream.beginText();
+                    contentStream.setFont(boldFont, 9);
+                    contentStream.newLineAtOffset(margin + 200, yPosition);
+                    contentStream.showText(String.format("$%.2f", detail.getTotalPrice()));
+                    contentStream.endText();
+                    yPosition -= lineHeight + 5;
+
+                    subtotal += detail.getTotalPrice();
                 }
             }
 
-            yPosition -= 10;
-            // Draw line
-            contentStream.moveTo(margin, yPosition);
-            contentStream.lineTo(margin + 500, yPosition);
-            contentStream.stroke();
-            yPosition -= 20;
+            // Check space for totals
+            if (yPosition < 200) {
+                contentStream.close();
+                PDPage newPage = new PDPage(new PDRectangle(300, 600));
+                document.addPage(newPage);
+                contentStream = new PDPageContentStream(document, newPage);
+                yPosition = 580;
+            }
 
-            // Add totals
+            // Separator
+            contentStream.moveTo(margin, yPosition);
+            contentStream.lineTo(300 - margin, yPosition);
+            contentStream.stroke();
+            yPosition -= 15;
+
+            // Totals section
+            float totalsX = 180;
+
+            // Subtotal
             contentStream.beginText();
-            contentStream.setFont(headerFont, 10);
-            contentStream.newLineAtOffset(margin + 250, yPosition);
+            contentStream.setFont(boldFont, 10);
+            contentStream.newLineAtOffset(totalsX, yPosition);
             contentStream.showText("Subtotal:");
             contentStream.endText();
 
             contentStream.beginText();
             contentStream.setFont(normalFont, 10);
-            contentStream.newLineAtOffset(margin + 320, yPosition);
+            contentStream.newLineAtOffset(totalsX + 70, yPosition);
             contentStream.showText(String.format("$%.2f", subtotal));
             contentStream.endText();
             yPosition -= lineHeight;
 
-            if (sale.getDiscount() > 0) {
-                contentStream.beginText();
-                contentStream.setFont(headerFont, 10);
-                contentStream.newLineAtOffset(margin + 250, yPosition);
-                contentStream.showText("Discount:");
-                contentStream.endText();
-
-                contentStream.beginText();
-                contentStream.setFont(normalFont, 10);
-                contentStream.newLineAtOffset(margin + 320, yPosition);
-                contentStream.showText(String.format("-$%.2f", sale.getDiscount()));
-                contentStream.endText();
-                yPosition -= lineHeight;
-            }
-
-            yPosition -= 10;
-            contentStream.moveTo(margin + 240, yPosition);
-            contentStream.lineTo(margin + 400, yPosition);
-            contentStream.stroke();
-            yPosition -= 20;
+            // Tax (assuming 10%)
+            double tax = subtotal * 0.10;
+            contentStream.beginText();
+            contentStream.setFont(boldFont, 10);
+            contentStream.newLineAtOffset(totalsX, yPosition);
+            contentStream.showText("Tax (10%):");
+            contentStream.endText();
 
             contentStream.beginText();
-            contentStream.setFont(titleFont, 12);
-            contentStream.newLineAtOffset(margin + 250, yPosition);
+            contentStream.setFont(normalFont, 10);
+            contentStream.newLineAtOffset(totalsX + 70, yPosition);
+            contentStream.showText(String.format("$%.2f", tax));
+            contentStream.endText();
+            yPosition -= lineHeight;
+
+            // Total
+            double total = subtotal + tax;
+            contentStream.beginText();
+            contentStream.setFont(headerFont, 11);
+            contentStream.newLineAtOffset(totalsX, yPosition);
             contentStream.showText("TOTAL:");
             contentStream.endText();
 
             contentStream.beginText();
-            contentStream.setFont(titleFont, 12);
-            contentStream.newLineAtOffset(margin + 320, yPosition);
-            contentStream.showText(String.format("$%.2f", sale.getFinalAmount()));
+            contentStream.setFont(headerFont, 11);
+            contentStream.newLineAtOffset(totalsX + 70, yPosition);
+            contentStream.showText(String.format("$%.2f", total));
             contentStream.endText();
-            yPosition -= 30;
+            yPosition -= 20;
 
-            // Add footer
+            // Cash details if cash payment
+            if ("Cash".equalsIgnoreCase(sale.getPaymentMethod()) && sale.getCashReceived() != null) {
+                contentStream.moveTo(margin, yPosition);
+                contentStream.lineTo(300 - margin, yPosition);
+                contentStream.stroke();
+                yPosition -= 15;
+
+                // Cash received
+                contentStream.beginText();
+                contentStream.setFont(boldFont, 10);
+                contentStream.newLineAtOffset(totalsX, yPosition);
+                contentStream.showText("Cash:");
+                contentStream.endText();
+
+                contentStream.beginText();
+                contentStream.setFont(normalFont, 10);
+                contentStream.newLineAtOffset(totalsX + 70, yPosition);
+                contentStream.showText(String.format("$%.2f", sale.getCashReceived()));
+                contentStream.endText();
+                yPosition -= lineHeight;
+
+                // Change
+                contentStream.beginText();
+                contentStream.setFont(boldFont, 10);
+                contentStream.newLineAtOffset(totalsX, yPosition);
+                contentStream.showText("Change:");
+                contentStream.endText();
+
+                contentStream.beginText();
+                contentStream.setFont(normalFont, 10);
+                contentStream.newLineAtOffset(totalsX + 70, yPosition);
+                contentStream.showText(String.format("$%.2f", sale.getChangeGiven()));
+                contentStream.endText();
+                yPosition -= 20;
+            }
+
+            // Final separator
+            contentStream.moveTo(margin, yPosition);
+            contentStream.lineTo(300 - margin, yPosition);
+            contentStream.stroke();
+            yPosition -= 20;
+
+            // Thank you message
+            contentStream.beginText();
+            contentStream.setFont(boldFont, 10);
+            contentStream.newLineAtOffset(centerX - 40, yPosition);
+            contentStream.showText("THANK YOU!");
+            contentStream.endText();
+            yPosition -= 15;
+
             contentStream.beginText();
             contentStream.setFont(smallFont, 8);
-            contentStream.newLineAtOffset(margin, yPosition);
-            contentStream.showText("Thank you for your business!");
+            contentStream.newLineAtOffset(centerX - 60, yPosition);
+            contentStream.showText("Please retain this receipt");
             contentStream.endText();
-            yPosition -= lineHeight;
+            yPosition -= 12;
 
             contentStream.beginText();
             contentStream.setFont(smallFont, 8);
-            contentStream.newLineAtOffset(margin, yPosition);
-            contentStream.showText("This is a computer-generated receipt. No signature required.");
+            contentStream.newLineAtOffset(centerX - 100, yPosition);
+            contentStream.showText("Items can be exchanged within 7 days with receipt");
             contentStream.endText();
-            yPosition -= lineHeight;
+            yPosition -= 12;
 
             contentStream.beginText();
-            contentStream.setFont(smallFont, 8);
-            contentStream.newLineAtOffset(margin, yPosition);
+            contentStream.setFont(smallFont, 7);
+            contentStream.newLineAtOffset(centerX - 90, yPosition);
             contentStream.showText("Generated by: " + sale.getCreatedBy());
             contentStream.endText();
 

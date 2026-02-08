@@ -7,36 +7,42 @@ import java.util.List;
 public class Sale {
     private int saleId;
     private int customerId;
-    private int userId;  // Added to match SQL
+    private int userId;
     private Date saleDate;
     private double totalAmount;
-    private double discount;  // Changed from discountAmount to match SQL
-    private double finalAmount;  // Changed from grandTotal to match SQL
+    private double discount;
+    private double finalAmount;
     private String paymentMethod;
-    private String status;  // Added to match SQL
-    private String notes;  // Added to match SQL
+    private String status;
+    private String notes;
     private String createdBy;
     private Timestamp createdAt;
     private Timestamp updatedAt;
     private List<SaleDetail> saleDetails;
 
+    // New fields for cash handling
+    private Double cashReceived;
+    private Double changeGiven;
+
     // Constructors
     public Sale() {
         this.saleDate = new Date();
-        this.status = "Completed";  // Default status
+        this.status = "Completed";
         this.paymentMethod = "Cash";
         this.discount = 0.0;
-        this.userId = 1;  // Default user ID
+        this.userId = 1;
+        this.cashReceived = null;
+        this.changeGiven = null;
     }
 
     public Sale(int customerId, double totalAmount) {
         this();
         this.customerId = customerId;
         this.totalAmount = totalAmount;
-        calculateFinalAmount();  // Calculate final amount
+        calculateFinalAmount();
     }
 
-    // Getters and Setters - UPDATED TO MATCH SQL
+    // Getters and Setters - UPDATED TO INCLUDE CASH FIELDS
     public int getSaleId() { return saleId; }
     public void setSaleId(int saleId) { this.saleId = saleId; }
 
@@ -52,17 +58,17 @@ public class Sale {
     public double getTotalAmount() { return totalAmount; }
     public void setTotalAmount(double totalAmount) {
         this.totalAmount = totalAmount;
-        calculateFinalAmount();  // Recalculate
+        calculateFinalAmount();
     }
 
     public double getDiscount() { return discount; }
     public void setDiscount(double discount) {
         this.discount = discount;
-        calculateFinalAmount();  // Recalculate
+        calculateFinalAmount();
     }
 
     public double getFinalAmount() {
-        calculateFinalAmount();  // Ensure it's calculated
+        calculateFinalAmount();
         return finalAmount;
     }
 
@@ -87,9 +93,25 @@ public class Sale {
     public List<SaleDetail> getSaleDetails() { return saleDetails; }
     public void setSaleDetails(List<SaleDetail> saleDetails) { this.saleDetails = saleDetails; }
 
+    // Cash handling getters and setters
+    public Double getCashReceived() { return cashReceived; }
+    public void setCashReceived(Double cashReceived) { this.cashReceived = cashReceived; }
+
+    public Double getChangeGiven() { return changeGiven; }
+    public void setChangeGiven(Double changeGiven) { this.changeGiven = changeGiven; }
+
     // Helper method to calculate final amount
     private void calculateFinalAmount() {
         this.finalAmount = this.totalAmount - this.discount;
+    }
+
+    // Calculate change if cash received
+    public double calculateChange() {
+        if (cashReceived != null && cashReceived > 0) {
+            double change = cashReceived - getFinalAmount();
+            return Math.max(change, 0);
+        }
+        return 0.0;
     }
 
     // Add sale detail
@@ -106,6 +128,8 @@ public class Sale {
                 " | Customer: " + customerId +
                 " | Total: $" + totalAmount +
                 " | Discount: $" + discount +
-                " | Final: $" + getFinalAmount();
+                " | Final: $" + getFinalAmount() +
+                (cashReceived != null ? " | Cash: $" + cashReceived : "") +
+                (changeGiven != null ? " | Change: $" + changeGiven : "");
     }
 }

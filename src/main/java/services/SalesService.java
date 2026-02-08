@@ -11,7 +11,7 @@ import java.util.List;
 
 public class SalesService {
 
-    // Create new sale - UPDATED TO MATCH SQL
+    // Create new sale - UPDATED TO INCLUDE CASH FIELDS
     public int createSale(Sale sale) throws SQLException {
         Connection conn = null;
         PreparedStatement pstmtSale = null;
@@ -22,10 +22,11 @@ public class SalesService {
             conn = DBConnection.getConnection();
             conn.setAutoCommit(false);
 
-            // Insert into Sales table - MATCHING YOUR SQL SCHEMA
+            // Insert into Sales table - INCLUDING CASH FIELDS
             String sqlSale = "INSERT INTO Sales (customer_id, user_id, total_amount, " +
-                    "discount, final_amount, payment_method, status, notes, created_by) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    "discount, final_amount, payment_method, status, notes, created_by, " +
+                    "cash_received, change_given) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             pstmtSale = conn.prepareStatement(sqlSale, Statement.RETURN_GENERATED_KEYS);
             pstmtSale.setInt(1, sale.getCustomerId());
@@ -37,6 +38,19 @@ public class SalesService {
             pstmtSale.setString(7, sale.getStatus());
             pstmtSale.setString(8, sale.getNotes());
             pstmtSale.setString(9, sale.getCreatedBy());
+
+            // Handle cash fields (could be null for non-cash payments)
+            if (sale.getCashReceived() != null) {
+                pstmtSale.setDouble(10, sale.getCashReceived());
+            } else {
+                pstmtSale.setNull(10, Types.DOUBLE);
+            }
+
+            if (sale.getChangeGiven() != null) {
+                pstmtSale.setDouble(11, sale.getChangeGiven());
+            } else {
+                pstmtSale.setNull(11, Types.DOUBLE);
+            }
 
             int rowsAffected = pstmtSale.executeUpdate();
 
@@ -54,7 +68,7 @@ public class SalesService {
                 throw new SQLException("Creating sale failed, no ID obtained.");
             }
 
-            // Insert sale details - MATCHING YOUR SQL SCHEMA
+            // Insert sale details
             if (sale.getSaleDetails() != null && !sale.getSaleDetails().isEmpty()) {
                 String sqlDetail = "INSERT INTO Sale_Details (sale_id, product_id, " +
                         "quantity, unit_price, total_price, discount) " +
@@ -76,6 +90,11 @@ public class SalesService {
 
                 // Update product stock
                 updateProductStock(sale.getSaleDetails(), conn);
+            }
+
+            // Log cash transaction if cash payment
+            if ("Cash".equalsIgnoreCase(sale.getPaymentMethod()) && sale.getCashReceived() != null) {
+                logCashTransaction(sale, conn);
             }
 
             conn.commit();
@@ -109,7 +128,23 @@ public class SalesService {
         stmt.close();
     }
 
-    // Get sale by ID - UPDATED QUERY
+    // Log cash transaction for daily cash tracking
+    private void logCashTransaction(Sale sale, Connection conn) throws SQLException {
+        String sql = "INSERT INTO Cash_Logs (sale_id, cash_received, change_given, " +
+                "net_amount, transaction_time, user_id) " +
+                "VALUES (?, ?, ?, ?, NOW(), ?)";
+
+        PreparedStatement pstmt = conn.prepareStatement(sql);
+        pstmt.setInt(1, sale.getSaleId());
+        pstmt.setDouble(2, sale.getCashReceived());
+        pstmt.setDouble(3, sale.getChangeGiven() != null ? sale.getChangeGiven() : 0.0);
+        pstmt.setDouble(4, sale.getFinalAmount());
+        pstmt.setInt(5, sale.getUserId());
+        pstmt.executeUpdate();
+        pstmt.close();
+    }
+
+    // Get sale by ID - UPDATED QUERY TO INCLUDE CASH FIELDS
     public Sale getSaleById(int saleId) throws SQLException {
         String sql = "SELECT s.*, c.full_name as customer_name, c.contact as customer_contact " +
                 "FROM Sales s " +
@@ -130,11 +165,23 @@ public class SalesService {
                 sale.setSaleDate(rs.getTimestamp("sale_date"));
                 sale.setTotalAmount(rs.getDouble("total_amount"));
                 sale.setDiscount(rs.getDouble("discount"));
-                sale.setTotalAmount(rs.getDouble("total_amount"));
-                sale.setDiscount(rs.getDouble("discount"));
                 sale.setPaymentMethod(rs.getString("payment_method"));
                 sale.setStatus(rs.getString("status"));
                 sale.setNotes(rs.getString("notes"));
+                sale.setCreatedBy(rs.getString("created_by"));
+                sale.setCreatedAt(rs.getTimestamp("created_at"));
+                sale.setUpdatedAt(rs.getTimestamp("updated_at"));
+
+                // Get cash fields
+                sale.setCashReceived(rs.getDouble("cash_received"));
+                if (rs.wasNull()) {
+                    sale.setCashReceived(null);
+                }
+
+                sale.setChangeGiven(rs.getDouble("change_given"));
+                if (rs.wasNull()) {
+                    sale.setChangeGiven(null);
+                }
 
                 // Load sale details
                 sale.setSaleDetails(getSaleDetails(saleId));
@@ -145,7 +192,56 @@ public class SalesService {
         return null;
     }
 
-    // Get sale details - UPDATED QUERY
+    // Get today's cash total
+    public double getTodayCashTotal() throws SQLException {
+        String sql = "SELECT COALESCE(SUM(final_amount), 0) as total_cash " +
+                "FROM Sales " +
+                "WHERE payment_method = 'Cash' " +
+                "AND DATE(sale_date) = CURDATE() " +
+                "AND status = 'Completed'";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble("total_cash");
+            }
+        }
+        return 0.0;
+    }
+
+    // Get today's cash transactions summary
+    public List<Object[]> getTodayCashSummary() throws SQLException {
+        List<Object[]> summary = new ArrayList<>();
+        String sql = "SELECT " +
+                "COUNT(*) as transaction_count, " +
+                "COALESCE(SUM(cash_received), 0) as total_received, " +
+                "COALESCE(SUM(change_given), 0) as total_change, " +
+                "COALESCE(SUM(final_amount), 0) as net_cash " +
+                "FROM Sales " +
+                "WHERE payment_method = 'Cash' " +
+                "AND DATE(sale_date) = CURDATE() " +
+                "AND status = 'Completed'";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                Object[] row = {
+                        rs.getInt("transaction_count"),
+                        rs.getDouble("total_received"),
+                        rs.getDouble("total_change"),
+                        rs.getDouble("net_cash")
+                };
+                summary.add(row);
+            }
+        }
+        return summary;
+    }
+
+    // Get sale details
     public List<SaleDetail> getSaleDetails(int saleId) throws SQLException {
         List<SaleDetail> details = new ArrayList<>();
         String sql = "SELECT sd.*, p.name as product_name " +
@@ -176,7 +272,7 @@ public class SalesService {
         return details;
     }
 
-    // Generate receipt PDF - This might need updating too
+    // Generate receipt PDF
     public boolean generateReceiptPDF(int saleId, String filePath) {
         try {
             Sale sale = getSaleById(saleId);
