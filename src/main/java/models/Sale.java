@@ -20,7 +20,7 @@ public class Sale {
     private Timestamp updatedAt;
     private List<SaleDetail> saleDetails;
 
-    // New fields for cash handling
+    // cash handling variables
     private Double cashReceived;
     private Double changeGiven;
 
@@ -42,7 +42,7 @@ public class Sale {
         calculateFinalAmount();
     }
 
-    // Getters and Setters - UPDATED TO INCLUDE CASH FIELDS
+    // Getters and Setters
     public int getSaleId() { return saleId; }
     public void setSaleId(int saleId) { this.saleId = saleId; }
 
@@ -100,12 +100,12 @@ public class Sale {
     public Double getChangeGiven() { return changeGiven; }
     public void setChangeGiven(Double changeGiven) { this.changeGiven = changeGiven; }
 
-    // Helper method to calculate final amount
+    // method to calculate final amount
     private void calculateFinalAmount() {
         this.finalAmount = this.totalAmount - this.discount;
     }
 
-    // Calculate change if cash received
+    // method to calculate change if cash received
     public double calculateChange() {
         if (cashReceived != null && cashReceived > 0) {
             double change = cashReceived - getFinalAmount();

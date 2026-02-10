@@ -65,7 +65,7 @@ public class SaleDetail {
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
 
-    // Business logic
+    // logic to calculate total price
     private void calculateTotalPrice() {
         this.totalPrice = (unitPrice * quantity) - discount;
     }

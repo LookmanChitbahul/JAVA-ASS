@@ -17,18 +17,18 @@ import java.util.*;
 import java.util.List;
 
 public class SalesUI extends JPanel {
-    // Services
+    // Services used
     private final SalesService salesService;
     private final ProductService productService;
     private final CustomerService customerService;
 
-    // UI Components - Left Panel (Products)
+    // UI Components - Left Panel (Products part)
     private JTextField txtSearchProduct;
     private JTable tblAvailableProducts;
     private DefaultTableModel productsTableModel;
     private JSpinner spnQuantity;
 
-    // UI Components - Right Panel (Cart)
+    // UI Components - Right Panel (Cart part)
     private JTable tblCart;
     private DefaultTableModel cartTableModel;
     private JLabel lblSubtotal;
@@ -38,7 +38,7 @@ public class SalesUI extends JPanel {
     private JTextField txtCustomerId;
     private JLabel lblCustomerInfo;
 
-    // New Cash Handling Components
+    // Cash Handling Components
     private JLabel lblAmountDue;
     private JTextField txtCashReceived;
     private JLabel lblChangeDue;
@@ -60,10 +60,10 @@ public class SalesUI extends JPanel {
     private List<Product> availableProducts;
     private List<CartItem> cartItems;
     private double currentSubtotal = 0.0;
-    private final double TAX_RATE = 0.10;
+    private final double TAX_RATE = 0.15;
     private int currentSaleId = 0;
 
-    // Colors matching your theme
+    // Colors matching theme aditya provided
     private static final Color DARK_BG = new Color(17, 24, 39);
     private static final Color CARD_BG = new Color(30, 41, 59);
     private static final Color PRIMARY_COLOR = new Color(59, 130, 246);
@@ -135,7 +135,7 @@ public class SalesUI extends JPanel {
         subtitle.setForeground(new Color(220, 220, 220));
 
         // Cash summary button
-        btnViewCashSummary = createButton("💰 Daily Cash Summary", INFO_COLOR);
+        btnViewCashSummary = createButton("Daily Cash Summary", INFO_COLOR);
         btnViewCashSummary.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnViewCashSummary.addActionListener(e -> showCashSummary());
 
@@ -294,6 +294,7 @@ public class SalesUI extends JPanel {
         return card;
     }
 
+    // Cart panel
     private JPanel createCartPanel() {
         JPanel card = new RoundedPanel(15);
         card.setLayout(new BorderLayout(0, 10));
@@ -394,7 +395,8 @@ public class SalesUI extends JPanel {
         cmbPaymentMethod.addActionListener(e -> toggleCashFields());
         paymentPanel.add(cmbPaymentMethod, gbc);
 
-        // Cash Received (only visible for Cash payment)
+        // Cash Received (only visible for Cash payment )
+        // Other payment must save receipt from bank's card machine
         gbc.gridx = 2; gbc.weightx = 0;
         lblAmountDue = new JLabel("Amount Due:");
         lblAmountDue.setForeground(TEXT_SECONDARY);
@@ -679,6 +681,7 @@ public class SalesUI extends JPanel {
     private void addToCart() {
         int selectedRow = tblAvailableProducts.getSelectedRow();
         if (selectedRow == -1) {
+            // Warning shown in case no product present/selected
             showWarning("Please select a product first");
             return;
         }
@@ -732,6 +735,7 @@ public class SalesUI extends JPanel {
         }
     }
 
+    // Remove item from cart method
     private void removeFromCart() {
         int selectedRow = tblCart.getSelectedRow();
         if (selectedRow == -1) {
@@ -865,6 +869,7 @@ public class SalesUI extends JPanel {
         JButton btnCancel = createButton("Cancel", DANGER_COLOR);
 
         btnSave.addActionListener(e -> {
+            //TODO
             // Implement customer creation logic here
             // You can call customerService.addCustomer() with the entered details
             dialog.dispose();
@@ -1091,7 +1096,7 @@ public class SalesUI extends JPanel {
                         Object[] data = summary.get(0);
 
                         String message = String.format(
-                                "💰 DAILY CASH SUMMARY\n" +
+                                "DAILY CASH SUMMARY\n" +
                                         "─────────────────────────\n" +
                                         "Transactions: %d\n" +
                                         "Cash Received: $%.2f\n" +

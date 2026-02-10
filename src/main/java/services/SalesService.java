@@ -11,7 +11,7 @@ import java.util.List;
 
 public class SalesService {
 
-    // Create new sale - UPDATED TO INCLUDE CASH FIELDS
+    // Creating new sale
     public int createSale(Sale sale) throws SQLException {
         Connection conn = null;
         PreparedStatement pstmtSale = null;
@@ -22,7 +22,7 @@ public class SalesService {
             conn = DBConnection.getConnection();
             conn.setAutoCommit(false);
 
-            // Insert into Sales table - INCLUDING CASH FIELDS
+            // Insert into Sales table
             String sqlSale = "INSERT INTO Sales (customer_id, user_id, total_amount, " +
                     "discount, final_amount, payment_method, status, notes, created_by, " +
                     "cash_received, change_given) " +
@@ -39,7 +39,7 @@ public class SalesService {
             pstmtSale.setString(8, sale.getNotes());
             pstmtSale.setString(9, sale.getCreatedBy());
 
-            // Handle cash fields (could be null for non-cash payments)
+            // Handle cash fields (****could be null for non-cash payments****)
             if (sale.getCashReceived() != null) {
                 pstmtSale.setDouble(10, sale.getCashReceived());
             } else {
@@ -68,7 +68,7 @@ public class SalesService {
                 throw new SQLException("Creating sale failed, no ID obtained.");
             }
 
-            // Insert sale details
+            // Insert sale details into table
             if (sale.getSaleDetails() != null && !sale.getSaleDetails().isEmpty()) {
                 String sqlDetail = "INSERT INTO Sale_Details (sale_id, product_id, " +
                         "quantity, unit_price, total_price, discount) " +
@@ -88,7 +88,7 @@ public class SalesService {
 
                 pstmtDetail.executeBatch();
 
-                // Update product stock
+                // Updating product stock
                 updateProductStock(sale.getSaleDetails(), conn);
             }
 
@@ -128,7 +128,7 @@ public class SalesService {
         stmt.close();
     }
 
-    // Log cash transaction for daily cash tracking
+    // Log cash transaction for daily cash tracking (cash present in register)
     private void logCashTransaction(Sale sale, Connection conn) throws SQLException {
         String sql = "INSERT INTO Cash_Logs (sale_id, cash_received, change_given, " +
                 "net_amount, transaction_time, user_id) " +
@@ -144,7 +144,7 @@ public class SalesService {
         pstmt.close();
     }
 
-    // Get sale by ID - UPDATED QUERY TO INCLUDE CASH FIELDS
+    // Get sale by ID
     public Sale getSaleById(int saleId) throws SQLException {
         String sql = "SELECT s.*, c.full_name as customer_name, c.contact as customer_contact " +
                 "FROM Sales s " +
@@ -192,7 +192,7 @@ public class SalesService {
         return null;
     }
 
-    // Get today's cash total
+    // Get today's cash total in the register
     public double getTodayCashTotal() throws SQLException {
         String sql = "SELECT COALESCE(SUM(final_amount), 0) as total_cash " +
                 "FROM Sales " +
@@ -272,7 +272,7 @@ public class SalesService {
         return details;
     }
 
-    // Generate receipt PDF
+    // Generate receipt PDF format like in supermarket
     public boolean generateReceiptPDF(int saleId, String filePath) {
         try {
             Sale sale = getSaleById(saleId);
@@ -288,7 +288,7 @@ public class SalesService {
         }
     }
 
-    // Close resources helper
+    // Close resources helper such that no memory wasted
     private void closeResources(ResultSet rs, Statement... statements) {
         try {
             if (rs != null) rs.close();

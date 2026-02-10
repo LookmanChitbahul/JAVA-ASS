@@ -1,7 +1,10 @@
 package utils;
 
+// Import model classes that contain sale and item details
 import models.Sale;
 import models.SaleDetail;
+
+// Apache PDFBox imports for creating and writing PDF files
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -9,6 +12,7 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
+// Java utility imports
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -16,32 +20,49 @@ import java.util.List;
 
 public class PDFUtil {
 
+    /**
+     * Generates a PDF receipt for a given Sale object
+     * Sale containing all sale information
+     * Path where the PDF will be saved
+     * return true if PDF generation is successful, else false
+     */
     public static boolean generateReceipt(Sale sale, String filePath) {
+
+        // PDDocument represents the entire PDF document
         PDDocument document = null;
 
         try {
-            // Create a new document
+            // Create a new empty PDF document
             document = new PDDocument();
-            PDPage page = new PDPage(new PDRectangle(300, 600)); // Narrow receipt size
+
+            // Create a narrow page to look like a receipt (300 x 600 points)
+            PDPage page = new PDPage(new PDRectangle(300, 600));
             document.addPage(page);
 
-            // Prepare content stream
-            PDPageContentStream contentStream = new PDPageContentStream(document, page);
+            // Content stream is used to write text and graphics onto the page
+            PDPageContentStream contentStream =
+                    new PDPageContentStream(document, page);
 
-            // Set up fonts
-            PDType1Font titleFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-            PDType1Font headerFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
-            PDType1Font normalFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-            PDType1Font smallFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);
-            PDType1Font boldFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+            // Define fonts used in different sections of the receipt
+            PDType1Font titleFont =
+                    new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+            PDType1Font headerFont =
+                    new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
+            PDType1Font normalFont =
+                    new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+            PDType1Font smallFont =
+                    new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE);
+            PDType1Font boldFont =
+                    new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD);
 
-            // Set margins
-            float margin = 15;
-            float yPosition = 580; // Start from top
-            float lineHeight = 12;
-            float centerX = 150; // Center of 300 width page
+            // Layout variables
+            float margin = 15;          // Left and right margin
+            float yPosition = 580;      // Vertical starting point (top of page)
+            float lineHeight = 12;      // Space between lines
+            float centerX = 150;        // Horizontal center of the page
 
-            // Store header
+            // STORE HEADER
+            // Store name (centered and bold)
             contentStream.beginText();
             contentStream.setFont(titleFont, 16);
             contentStream.newLineAtOffset(centerX - 60, yPosition);
@@ -49,6 +70,7 @@ public class PDFUtil {
             contentStream.endText();
             yPosition -= 20;
 
+            // Store address
             contentStream.beginText();
             contentStream.setFont(normalFont, 10);
             contentStream.newLineAtOffset(centerX - 70, yPosition);
@@ -56,6 +78,7 @@ public class PDFUtil {
             contentStream.endText();
             yPosition -= 15;
 
+            // Store contact number
             contentStream.beginText();
             contentStream.setFont(normalFont, 10);
             contentStream.newLineAtOffset(centerX - 60, yPosition);
@@ -63,13 +86,14 @@ public class PDFUtil {
             contentStream.endText();
             yPosition -= 20;
 
-            // Separator line
+            // Draw a horizontal separator line
             contentStream.moveTo(margin, yPosition);
             contentStream.lineTo(300 - margin, yPosition);
             contentStream.stroke();
             yPosition -= 20;
 
-            // Receipt header
+            //RECEIPT HEADER
+
             contentStream.beginText();
             contentStream.setFont(headerFont, 12);
             contentStream.newLineAtOffset(centerX - 40, yPosition);
@@ -77,11 +101,11 @@ public class PDFUtil {
             contentStream.endText();
             yPosition -= 20;
 
-            // Receipt details in two columns
+            // Column positions for receipt details
             float leftCol = margin;
             float rightCol = 150;
 
-            // Sale number
+            // Receipt number
             contentStream.beginText();
             contentStream.setFont(boldFont, 10);
             contentStream.newLineAtOffset(leftCol, yPosition);
@@ -95,7 +119,7 @@ public class PDFUtil {
             contentStream.endText();
             yPosition -= lineHeight;
 
-            // Date
+            // Sale date
             contentStream.beginText();
             contentStream.setFont(boldFont, 10);
             contentStream.newLineAtOffset(leftCol, yPosition);
@@ -105,11 +129,13 @@ public class PDFUtil {
             contentStream.beginText();
             contentStream.setFont(normalFont, 10);
             contentStream.newLineAtOffset(rightCol, yPosition);
-            contentStream.showText(new SimpleDateFormat("dd/MM/yyyy").format(sale.getSaleDate()));
+            contentStream.showText(
+                    new SimpleDateFormat("dd/MM/yyyy")
+                            .format(sale.getSaleDate()));
             contentStream.endText();
             yPosition -= lineHeight;
 
-            // Time
+            // Sale time
             contentStream.beginText();
             contentStream.setFont(boldFont, 10);
             contentStream.newLineAtOffset(leftCol, yPosition);
@@ -119,11 +145,13 @@ public class PDFUtil {
             contentStream.beginText();
             contentStream.setFont(normalFont, 10);
             contentStream.newLineAtOffset(rightCol, yPosition);
-            contentStream.showText(new SimpleDateFormat("HH:mm:ss").format(sale.getSaleDate()));
+            contentStream.showText(
+                    new SimpleDateFormat("HH:mm:ss")
+                            .format(sale.getSaleDate()));
             contentStream.endText();
             yPosition -= lineHeight;
 
-            // Customer
+            // Customer ID
             contentStream.beginText();
             contentStream.setFont(boldFont, 10);
             contentStream.newLineAtOffset(leftCol, yPosition);
@@ -151,13 +179,14 @@ public class PDFUtil {
             contentStream.endText();
             yPosition -= 20;
 
-            // Separator
+            //ITEMS TABLE
+            // Separator before table
             contentStream.moveTo(margin, yPosition);
             contentStream.lineTo(300 - margin, yPosition);
             contentStream.stroke();
             yPosition -= 15;
 
-            // Table header
+            // Table column headers
             contentStream.beginText();
             contentStream.setFont(headerFont, 10);
             contentStream.newLineAtOffset(margin, yPosition);
@@ -177,33 +206,40 @@ public class PDFUtil {
             contentStream.endText();
             yPosition -= 15;
 
-            // Header line
+            // Draw line under table header
             contentStream.moveTo(margin, yPosition);
             contentStream.lineTo(300 - margin, yPosition);
             contentStream.stroke();
             yPosition -= 10;
 
-            // Add sale items
+            //SALE ITEMS
+
             double subtotal = 0;
+
+            // Loop through all sale items
             if (sale.getSaleDetails() != null) {
                 for (SaleDetail detail : sale.getSaleDetails()) {
-                    // Check if we need a new page
+
+                    // If page space is low, create a new page
                     if (yPosition < 150) {
                         contentStream.close();
-                        PDPage newPage = new PDPage(new PDRectangle(300, 600));
+                        PDPage newPage =
+                                new PDPage(new PDRectangle(300, 600));
                         document.addPage(newPage);
-                        contentStream = new PDPageContentStream(document, newPage);
+                        contentStream =
+                                new PDPageContentStream(document, newPage);
                         yPosition = 580;
                     }
 
-                    // Quantity
+                    // Item quantity
                     contentStream.beginText();
                     contentStream.setFont(normalFont, 9);
                     contentStream.newLineAtOffset(margin, yPosition);
-                    contentStream.showText(String.valueOf(detail.getQuantity()));
+                    contentStream.showText(
+                            String.valueOf(detail.getQuantity()));
                     contentStream.endText();
 
-                    // Product name (truncate if too long)
+                    // Product name (limited length to fit receipt)
                     String productName = detail.getProductName();
                     if (productName.length() > 20) {
                         productName = productName.substring(0, 20) + "...";
@@ -215,51 +251,61 @@ public class PDFUtil {
                     contentStream.showText(productName);
                     contentStream.endText();
 
-                    // Price
+                    // Unit price
                     contentStream.beginText();
                     contentStream.setFont(normalFont, 9);
                     contentStream.newLineAtOffset(margin + 180, yPosition);
-                    contentStream.showText(String.format("$%.2f", detail.getUnitPrice()));
+                    contentStream.showText(
+                            String.format("$%.2f",
+                                    detail.getUnitPrice()));
                     contentStream.endText();
                     yPosition -= lineHeight;
 
-                    // Subtotal for this item
+                    // Quantity × price calculation
                     contentStream.beginText();
                     contentStream.setFont(normalFont, 8);
                     contentStream.newLineAtOffset(margin + 160, yPosition);
-                    contentStream.showText("x" + detail.getQuantity() + " =");
+                    contentStream.showText(
+                            "x" + detail.getQuantity() + " =");
                     contentStream.endText();
 
+                    // Total price for the item
                     contentStream.beginText();
                     contentStream.setFont(boldFont, 9);
                     contentStream.newLineAtOffset(margin + 200, yPosition);
-                    contentStream.showText(String.format("$%.2f", detail.getTotalPrice()));
+                    contentStream.showText(
+                            String.format("$%.2f",
+                                    detail.getTotalPrice()));
                     contentStream.endText();
                     yPosition -= lineHeight + 5;
 
+                    // Accumulate subtotal
                     subtotal += detail.getTotalPrice();
                 }
             }
 
-            // Check space for totals
+            //TOTALS
+
+            // If space is insufficient, add new page
             if (yPosition < 200) {
                 contentStream.close();
-                PDPage newPage = new PDPage(new PDRectangle(300, 600));
+                PDPage newPage =
+                        new PDPage(new PDRectangle(300, 600));
                 document.addPage(newPage);
-                contentStream = new PDPageContentStream(document, newPage);
+                contentStream =
+                        new PDPageContentStream(document, newPage);
                 yPosition = 580;
             }
 
-            // Separator
+            // Separator before totals
             contentStream.moveTo(margin, yPosition);
             contentStream.lineTo(300 - margin, yPosition);
             contentStream.stroke();
             yPosition -= 15;
 
-            // Totals section
             float totalsX = 180;
 
-            // Subtotal
+            // Subtotal display
             contentStream.beginText();
             contentStream.setFont(boldFont, 10);
             contentStream.newLineAtOffset(totalsX, yPosition);
@@ -269,12 +315,14 @@ public class PDFUtil {
             contentStream.beginText();
             contentStream.setFont(normalFont, 10);
             contentStream.newLineAtOffset(totalsX + 70, yPosition);
-            contentStream.showText(String.format("$%.2f", subtotal));
+            contentStream.showText(
+                    String.format("$%.2f", subtotal));
             contentStream.endText();
             yPosition -= lineHeight;
 
-            // Tax (assuming 10%)
+            // Tax calculation (10%)
             double tax = subtotal * 0.10;
+
             contentStream.beginText();
             contentStream.setFont(boldFont, 10);
             contentStream.newLineAtOffset(totalsX, yPosition);
@@ -284,12 +332,14 @@ public class PDFUtil {
             contentStream.beginText();
             contentStream.setFont(normalFont, 10);
             contentStream.newLineAtOffset(totalsX + 70, yPosition);
-            contentStream.showText(String.format("$%.2f", tax));
+            contentStream.showText(
+                    String.format("$%.2f", tax));
             contentStream.endText();
             yPosition -= lineHeight;
 
-            // Total
+            // Final total
             double total = subtotal + tax;
+
             contentStream.beginText();
             contentStream.setFont(headerFont, 11);
             contentStream.newLineAtOffset(totalsX, yPosition);
@@ -299,12 +349,17 @@ public class PDFUtil {
             contentStream.beginText();
             contentStream.setFont(headerFont, 11);
             contentStream.newLineAtOffset(totalsX + 70, yPosition);
-            contentStream.showText(String.format("$%.2f", total));
+            contentStream.showText(
+                    String.format("$%.2f", total));
             contentStream.endText();
             yPosition -= 20;
 
-            // Cash details if cash payment
-            if ("Cash".equalsIgnoreCase(sale.getPaymentMethod()) && sale.getCashReceived() != null) {
+            //CASH PAYMENT DETAILS
+
+            if ("Cash".equalsIgnoreCase(sale.getPaymentMethod())
+                    && sale.getCashReceived() != null) {
+
+                // Separator
                 contentStream.moveTo(margin, yPosition);
                 contentStream.lineTo(300 - margin, yPosition);
                 contentStream.stroke();
@@ -320,11 +375,13 @@ public class PDFUtil {
                 contentStream.beginText();
                 contentStream.setFont(normalFont, 10);
                 contentStream.newLineAtOffset(totalsX + 70, yPosition);
-                contentStream.showText(String.format("$%.2f", sale.getCashReceived()));
+                contentStream.showText(
+                        String.format("$%.2f",
+                                sale.getCashReceived()));
                 contentStream.endText();
                 yPosition -= lineHeight;
 
-                // Change
+                // Change returned
                 contentStream.beginText();
                 contentStream.setFont(boldFont, 10);
                 contentStream.newLineAtOffset(totalsX, yPosition);
@@ -334,11 +391,14 @@ public class PDFUtil {
                 contentStream.beginText();
                 contentStream.setFont(normalFont, 10);
                 contentStream.newLineAtOffset(totalsX + 70, yPosition);
-                contentStream.showText(String.format("$%.2f", sale.getChangeGiven()));
+                contentStream.showText(
+                        String.format("$%.2f",
+                                sale.getChangeGiven()));
                 contentStream.endText();
                 yPosition -= 20;
             }
 
+            //FOOTER PARt
             // Final separator
             contentStream.moveTo(margin, yPosition);
             contentStream.lineTo(300 - margin, yPosition);
@@ -353,6 +413,7 @@ public class PDFUtil {
             contentStream.endText();
             yPosition -= 15;
 
+            // Receipt note
             contentStream.beginText();
             contentStream.setFont(smallFont, 8);
             contentStream.newLineAtOffset(centerX - 60, yPosition);
@@ -360,23 +421,27 @@ public class PDFUtil {
             contentStream.endText();
             yPosition -= 12;
 
+            // Exchange policy
             contentStream.beginText();
             contentStream.setFont(smallFont, 8);
             contentStream.newLineAtOffset(centerX - 100, yPosition);
-            contentStream.showText("Items can be exchanged within 7 days with receipt");
+            contentStream.showText(
+                    "Items can be exchanged within 7 days with receipt");
             contentStream.endText();
             yPosition -= 12;
 
+            // User who generated the receipt
             contentStream.beginText();
             contentStream.setFont(smallFont, 7);
             contentStream.newLineAtOffset(centerX - 90, yPosition);
-            contentStream.showText("Generated by: " + sale.getCreatedBy());
+            contentStream.showText(
+                    "Generated by: " + sale.getCreatedBy());
             contentStream.endText();
 
-            // Close content stream
+            // Close the content stream
             contentStream.close();
 
-            // Save the document
+            // Save and close the PDF document
             document.save(new File(filePath));
             document.close();
 
@@ -387,6 +452,7 @@ public class PDFUtil {
             System.err.println("✗ Error generating PDF: " + e.getMessage());
             e.printStackTrace();
 
+            // Ensure document is closed even if an error occurs
             if (document != null) {
                 try {
                     document.close();
