@@ -24,20 +24,54 @@ public class AuthService {
         }
 
         try (Connection conn = DBConnection.getConnection()) {
-            String sql = "SELECT * FROM Users WHERE username=? AND password=?";
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, username);
-            stmt.setString(2, password);
+            if (conn == null)
+                return false;
 
-            ResultSet rs = stmt.executeQuery();
-            boolean isAuthenticated = rs.next();
-
-            // Log the login attempt
-            if (isAuthenticated) {
-                JSONUtil.logLogin(username);
+            // Dynamically check for password or password_hash column
+            String passwordColumn = "password"; // default
+            try {
+                java.sql.DatabaseMetaData meta = conn.getMetaData();
+                try (ResultSet rs = meta.getColumns(null, null, "users", "password_hash")) {
+                    if (rs.next()) {
+                        passwordColumn = "password_hash";
+                    } else {
+                        // try uppercase Users
+                        try (ResultSet rs2 = meta.getColumns(null, null, "Users", "password_hash")) {
+                            if (rs2.next())
+                                passwordColumn = "password_hash";
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                // Fallback to default if metadata check fails
             }
 
-            return isAuthenticated;
+            String sql = "SELECT * FROM users WHERE username=? AND " + passwordColumn + "=?";
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, username);
+                stmt.setString(2, password);
+
+                try (ResultSet rs = stmt.executeQuery()) {
+                    boolean isAuthenticated = rs.next();
+                    if (isAuthenticated) {
+                        JSONUtil.logLogin(username);
+                    }
+                    return isAuthenticated;
+                }
+            } catch (SQLException e) {
+                // Secondary fallback try uppercase Users if lowercase users fails
+                String sql2 = "SELECT * FROM Users WHERE username=? AND " + passwordColumn + "=?";
+                try (PreparedStatement stmt = conn.prepareStatement(sql2)) {
+                    stmt.setString(1, username);
+                    stmt.setString(2, password);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        boolean isAuthenticated = rs.next();
+                        if (isAuthenticated)
+                            JSONUtil.logLogin(username);
+                        return isAuthenticated;
+                    }
+                }
+            }
         }
     }
 
@@ -62,16 +96,26 @@ public class AuthService {
      */
     public User getUserDetails(String username) throws SQLException {
         try (Connection conn = DBConnection.getConnection()) {
-            // We assume the login table has these columns or there is a users table
-            // Based on the requirement, we fetch from the database
-            String sql = "SELECT * FROM Users WHERE username=?";
-            PreparedStatement stmt = conn.prepareStatement(sql);
-            stmt.setString(1, username);
+            if (conn == null)
+                return null;
 
-            ResultSet rs = stmt.executeQuery();
-            if (rs.next()) {
-                // Try to get values, providing defaults if columns are missing in some
-                // environments
+            String sql = "SELECT * FROM users WHERE username=?";
+            PreparedStatement stmt = null;
+            ResultSet rs = null;
+
+            try {
+                stmt = conn.prepareStatement(sql);
+                stmt.setString(1, username);
+                rs = stmt.executeQuery();
+            } catch (SQLException e) {
+                // Try uppercase Users
+                sql = "SELECT * FROM Users WHERE username=?";
+                stmt = conn.prepareStatement(sql);
+                stmt.setString(1, username);
+                rs = stmt.executeQuery();
+            }
+
+            if (rs != null && rs.next()) {
                 String email = getColumnStringSafe(rs, "email", "not set");
                 String phone = getColumnStringSafe(rs, "phone", "not set");
                 String status = getColumnStringSafe(rs, "status", "Active");

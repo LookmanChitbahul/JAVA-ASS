@@ -14,8 +14,6 @@ class RotatingGradientPanel extends JPanel {
     private Color color2 = new Color(28, 181, 224); // #1cb5e0 (light cyan)
 
     public RotatingGradientPanel() {
-        this.color1 = new Color(0, 0, 70); // #000046
-        this.color2 = new Color(28, 181, 224); // #1cb5e0
         initTimer();
     }
 
