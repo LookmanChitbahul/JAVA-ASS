@@ -63,17 +63,17 @@ public class SalesUI extends JPanel {
     private final double TAX_RATE = 0.15;
     private int currentSaleId = 0;
 
-    // Colors matching theme aditya provided
-    private static final Color DARK_BG = new Color(17, 24, 39);
-    private static final Color CARD_BG = new Color(30, 41, 59);
-    private static final Color PRIMARY_COLOR = new Color(59, 130, 246);
-    private static final Color SUCCESS_COLOR = new Color(34, 197, 94);
-    private static final Color DANGER_COLOR = new Color(239, 68, 68);
-    private static final Color WARNING_COLOR = new Color(251, 146, 60);
-    private static final Color TEXT_PRIMARY = new Color(241, 245, 249);
-    private static final Color TEXT_SECONDARY = new Color(148, 163, 184);
-    private static final Color BORDER_COLOR = new Color(55, 65, 81);
-    private static final Color INFO_COLOR = new Color(56, 189, 248);
+    // Dynamic Theme Colors
+    private final Color DARK_BG = AppTheme.getBgColor();
+    private final Color CARD_BG = AppTheme.getCardColor();
+    private final Color PRIMARY_COLOR = AppTheme.getPrimaryColor();
+    private final Color SUCCESS_COLOR = new Color(34, 197, 94);
+    private final Color DANGER_COLOR = new Color(239, 68, 68);
+    private final Color WARNING_COLOR = new Color(251, 146, 60);
+    private final Color TEXT_PRIMARY = AppTheme.getTextColor();
+    private final Color TEXT_SECONDARY = AppTheme.getSubTextColor();
+    private final Color BORDER_COLOR = AppTheme.getBorderColor();
+    private final Color INFO_COLOR = new Color(56, 189, 248);
 
     public SalesUI() {
         // Initialize services
@@ -181,35 +181,43 @@ public class SalesUI extends JPanel {
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         // Customer ID
-        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0;
         panel.add(createLabel("Customer ID:"), gbc);
 
-        gbc.gridx = 1; gbc.weightx = 0.3;
+        gbc.gridx = 1;
+        gbc.weightx = 0.3;
         txtCustomerId = createTextField(10);
         txtCustomerId.addActionListener(e -> validateCustomer());
         panel.add(txtCustomerId, gbc);
 
         // Customer Info
-        gbc.gridx = 2; gbc.weightx = 0;
+        gbc.gridx = 2;
+        gbc.weightx = 0;
         panel.add(createLabel("Customer:"), gbc);
 
-        gbc.gridx = 3; gbc.weightx = 0.5;
+        gbc.gridx = 3;
+        gbc.weightx = 0.5;
         lblCustomerInfo = new JLabel("Enter customer ID");
         lblCustomerInfo.setForeground(TEXT_SECONDARY);
         lblCustomerInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         panel.add(lblCustomerInfo, gbc);
 
         // New Customer Button
-        gbc.gridx = 4; gbc.weightx = 0;
+        gbc.gridx = 4;
+        gbc.weightx = 0;
         btnNewCustomer = createButton("+ New Customer", PRIMARY_COLOR);
         btnNewCustomer.addActionListener(e -> showNewCustomerDialog());
         panel.add(btnNewCustomer, gbc);
 
         // Search Products
-        gbc.gridx = 5; gbc.weightx = 0;
+        gbc.gridx = 5;
+        gbc.weightx = 0;
         panel.add(createLabel("Search:"), gbc);
 
-        gbc.gridx = 6; gbc.weightx = 0.4;
+        gbc.gridx = 6;
+        gbc.weightx = 0.4;
         txtSearchProduct = createTextField(15);
         txtSearchProduct.addKeyListener(new KeyAdapter() {
             @Override
@@ -249,7 +257,7 @@ public class SalesUI extends JPanel {
         card.add(tableHeader, BorderLayout.NORTH);
 
         // Products table
-        String[] columns = {"ID", "Product", "Category", "Price", "Stock"};
+        String[] columns = { "ID", "Product", "Category", "Price", "Stock" };
         productsTableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -272,8 +280,8 @@ public class SalesUI extends JPanel {
 
         // Table header styling
         JTableHeader header = tblAvailableProducts.getTableHeader();
-        header.setBackground(new Color(30, 41, 59));
-        header.setForeground(TEXT_PRIMARY);
+        header.setBackground(AppTheme.getCardColor());
+        header.setForeground(AppTheme.getTextColor());
         header.setFont(new Font("Segoe UI", Font.BOLD, 13));
 
         JScrollPane scrollPane = new JScrollPane(tblAvailableProducts);
@@ -307,7 +315,7 @@ public class SalesUI extends JPanel {
         card.add(title, BorderLayout.NORTH);
 
         // Cart table
-        String[] columns = {"Product", "Qty", "Price", "Subtotal"};
+        String[] columns = { "Product", "Qty", "Price", "Subtotal" };
         cartTableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -316,7 +324,8 @@ public class SalesUI extends JPanel {
 
             @Override
             public Class<?> getColumnClass(int columnIndex) {
-                if (columnIndex == 1) return Integer.class;
+                if (columnIndex == 1)
+                    return Integer.class;
                 return String.class;
             }
         };
@@ -386,39 +395,46 @@ public class SalesUI extends JPanel {
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
         // Payment Method
-        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0;
         paymentPanel.add(createLabel("Payment Method:"), gbc);
 
-        gbc.gridx = 1; gbc.weightx = 0.3;
-        cmbPaymentMethod = new JComboBox<>(new String[]{"Cash", "Credit Card", "Debit Card", "Mobile Payment"});
+        gbc.gridx = 1;
+        gbc.weightx = 0.3;
+        cmbPaymentMethod = new JComboBox<>(new String[] { "Cash", "Credit Card", "Debit Card", "Mobile Payment" });
         styleComboBox(cmbPaymentMethod);
         cmbPaymentMethod.addActionListener(e -> toggleCashFields());
         paymentPanel.add(cmbPaymentMethod, gbc);
 
         // Cash Received (only visible for Cash payment )
         // Other payment must save receipt from bank's card machine
-        gbc.gridx = 2; gbc.weightx = 0;
+        gbc.gridx = 2;
+        gbc.weightx = 0;
         lblAmountDue = new JLabel("Amount Due:");
         lblAmountDue.setForeground(TEXT_SECONDARY);
         lblAmountDue.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblAmountDue.setVisible(false);
         paymentPanel.add(lblAmountDue, gbc);
 
-        gbc.gridx = 3; gbc.weightx = 0.2;
+        gbc.gridx = 3;
+        gbc.weightx = 0.2;
         txtCashReceived = createTextField(10);
         txtCashReceived.setVisible(false);
         txtCashReceived.addActionListener(e -> calculateChange());
         paymentPanel.add(txtCashReceived, gbc);
 
         // Calculate Change Button
-        gbc.gridx = 4; gbc.weightx = 0;
+        gbc.gridx = 4;
+        gbc.weightx = 0;
         btnCalculateChange = createButton("Calculate Change", INFO_COLOR);
         btnCalculateChange.setVisible(false);
         btnCalculateChange.addActionListener(e -> calculateChange());
         paymentPanel.add(btnCalculateChange, gbc);
 
         // Change Due Label
-        gbc.gridx = 5; gbc.weightx = 0.2;
+        gbc.gridx = 5;
+        gbc.weightx = 0.2;
         lblChangeDue = new JLabel("Change: $0.00");
         lblChangeDue.setForeground(SUCCESS_COLOR);
         lblChangeDue.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -550,8 +566,7 @@ public class SalesUI extends JPanel {
         tf.setCaretColor(TEXT_PRIMARY);
         tf.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(8, 10, 8, 10)
-        ));
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)));
         tf.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         return tf;
     }
@@ -570,6 +585,7 @@ public class SalesUI extends JPanel {
             public void mouseEntered(MouseEvent e) {
                 btn.setBackground(darkenColor(color, 0.9f));
             }
+
             public void mouseExited(MouseEvent e) {
                 btn.setBackground(color);
             }
@@ -579,26 +595,26 @@ public class SalesUI extends JPanel {
     }
 
     private void styleSpinner(JSpinner spinner) {
-        spinner.setBackground(new Color(30, 41, 65));
-        spinner.setForeground(TEXT_PRIMARY);
-        spinner.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        spinner.setBackground(AppTheme.getCardColor());
+        spinner.setForeground(AppTheme.getTextColor());
+        spinner.setBorder(BorderFactory.createLineBorder(AppTheme.getBorderColor(), 1));
         JFormattedTextField tf = ((JSpinner.DefaultEditor) spinner.getEditor()).getTextField();
-        tf.setBackground(new Color(30, 41, 65));
-        tf.setForeground(TEXT_PRIMARY);
-        tf.setCaretColor(TEXT_PRIMARY);
+        tf.setBackground(AppTheme.getCardColor());
+        tf.setForeground(AppTheme.getTextColor());
+        tf.setCaretColor(AppTheme.getTextColor());
     }
 
     private void styleComboBox(JComboBox<?> comboBox) {
-        comboBox.setBackground(new Color(30, 41, 65));
-        comboBox.setForeground(TEXT_PRIMARY);
-        comboBox.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        comboBox.setBackground(AppTheme.getCardColor());
+        comboBox.setForeground(AppTheme.getTextColor());
+        comboBox.setBorder(BorderFactory.createLineBorder(AppTheme.getBorderColor(), 1));
         comboBox.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value,
-                                                          int index, boolean isSelected, boolean cellHasFocus) {
+                    int index, boolean isSelected, boolean cellHasFocus) {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                setBackground(isSelected ? PRIMARY_COLOR : new Color(30, 41, 65));
-                setForeground(isSelected ? Color.WHITE : TEXT_PRIMARY);
+                setBackground(isSelected ? PRIMARY_COLOR : AppTheme.getCardColor());
+                setForeground(isSelected ? Color.WHITE : AppTheme.getTextColor());
                 return this;
             }
         });
@@ -618,10 +634,9 @@ public class SalesUI extends JPanel {
 
     private Color darkenColor(Color color, float factor) {
         return new Color(
-                Math.max((int)(color.getRed() * factor), 0),
-                Math.max((int)(color.getGreen() * factor), 0),
-                Math.max((int)(color.getBlue() * factor), 0)
-        );
+                Math.max((int) (color.getRed() * factor), 0),
+                Math.max((int) (color.getGreen() * factor), 0),
+                Math.max((int) (color.getBlue() * factor), 0));
     }
 
     // Data loading and business logic methods
@@ -649,7 +664,7 @@ public class SalesUI extends JPanel {
     private void updateProductsTable() {
         productsTableModel.setRowCount(0);
         for (Product product : availableProducts) {
-            productsTableModel.addRow(new Object[]{
+            productsTableModel.addRow(new Object[] {
                     product.getProductId(),
                     product.getName(),
                     product.getCategory(),
@@ -667,7 +682,7 @@ public class SalesUI extends JPanel {
             if (searchText.isEmpty() ||
                     product.getName().toLowerCase().contains(searchText) ||
                     product.getCategory().toLowerCase().contains(searchText)) {
-                productsTableModel.addRow(new Object[]{
+                productsTableModel.addRow(new Object[] {
                         product.getProductId(),
                         product.getName(),
                         product.getCategory(),
@@ -726,7 +741,7 @@ public class SalesUI extends JPanel {
     private void updateCartTable() {
         cartTableModel.setRowCount(0);
         for (CartItem item : cartItems) {
-            cartTableModel.addRow(new Object[]{
+            cartTableModel.addRow(new Object[] {
                     item.productName,
                     item.quantity,
                     String.format("$%.2f", item.unitPrice),
@@ -840,7 +855,7 @@ public class SalesUI extends JPanel {
 
     private void showNewCustomerDialog() {
         // Simple dialog for new customer
-        JDialog dialog = new JDialog((Frame)SwingUtilities.getWindowAncestor(this), "New Customer", true);
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "New Customer", true);
         dialog.setLayout(new BorderLayout(10, 10));
         dialog.setSize(400, 300);
         dialog.setLocationRelativeTo(this);
@@ -869,7 +884,7 @@ public class SalesUI extends JPanel {
         JButton btnCancel = createButton("Cancel", DANGER_COLOR);
 
         btnSave.addActionListener(e -> {
-            //TODO
+            // TODO
             // Implement customer creation logic here
             // You can call customerService.addCustomer() with the entered details
             dialog.dispose();
@@ -969,8 +984,7 @@ public class SalesUI extends JPanel {
                     cartItem.productId,
                     cartItem.productName,
                     cartItem.unitPrice,
-                    cartItem.quantity
-            );
+                    cartItem.quantity);
             detail.setTotalPrice(cartItem.getSubtotal());
             detail.setDiscount(0.0);
             saleDetails.add(detail);
@@ -999,8 +1013,7 @@ public class SalesUI extends JPanel {
                         if ("Cash".equals(finalPaymentMethod)) {
                             showSuccess(String.format(
                                     "Checkout successful! Sale #%d\nCash: $%.2f | Change: $%.2f",
-                                    saleId, finalCashReceived, finalChangeGiven
-                            ));
+                                    saleId, finalCashReceived, finalChangeGiven));
                         } else {
                             showSuccess("Checkout successful! Sale #" + saleId);
                         }
@@ -1108,8 +1121,7 @@ public class SalesUI extends JPanel {
                                 (Double) data[1],
                                 (Double) data[2],
                                 (Double) data[3],
-                                new SimpleDateFormat("dd-MMM-yyyy").format(new Date())
-                        );
+                                new SimpleDateFormat("dd-MMM-yyyy").format(new Date()));
 
                         JOptionPane.showMessageDialog(SalesUI.this,
                                 message,
@@ -1133,7 +1145,7 @@ public class SalesUI extends JPanel {
         public RoundedPanel(int radius) {
             this.radius = radius;
             setOpaque(false);
-            setBackground(CARD_BG);
+            setBackground(AppTheme.getCardColor());
         }
 
         @Override
@@ -1142,7 +1154,7 @@ public class SalesUI extends JPanel {
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(getBackground());
             g2.fillRoundRect(0, 0, getWidth(), getHeight(), radius, radius);
-            g2.setColor(BORDER_COLOR);
+            g2.setColor(AppTheme.getBorderColor());
             g2.setStroke(new BasicStroke(1));
             g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
         }
@@ -1150,15 +1162,16 @@ public class SalesUI extends JPanel {
 
     private static class RotatingGradientHeaderPanel extends JPanel {
         private double angle = 0;
-        private final Color color1 = Color.decode("#000428");
-        private final Color color2 = Color.decode("#004e92");
+        private final Color color1 = AppTheme.getGradient1();
+        private final Color color2 = AppTheme.getGradient2();
         private final javax.swing.Timer timer;
 
         public RotatingGradientHeaderPanel() {
             setOpaque(false);
             timer = new javax.swing.Timer(60, e -> {
                 angle += Math.toRadians(1.8);
-                if (angle > Math.PI * 2) angle -= Math.PI * 2;
+                if (angle > Math.PI * 2)
+                    angle -= Math.PI * 2;
                 repaint();
             });
             timer.start();

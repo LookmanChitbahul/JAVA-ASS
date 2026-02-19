@@ -67,6 +67,8 @@ CREATE TABLE IF NOT EXISTS Sales (
     payment_method ENUM('Cash', 'Card', 'Cheque', 'Online') DEFAULT 'Cash',
     status ENUM('Completed', 'Pending', 'Cancelled') DEFAULT 'Completed',
     notes TEXT,
+    cash_received DECIMAL(10,2) DEFAULT NULL,
+    change_given DECIMAL(10,2) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES Customers(customer_id) ON DELETE SET NULL,
@@ -74,6 +76,18 @@ CREATE TABLE IF NOT EXISTS Sales (
     INDEX idx_sale_date (sale_date),
     INDEX idx_customer_id (customer_id)
 );
+
+--Cash logs table
+CREATE TABLE IF NOT EXISTS Cash_Logs (
+    log_id INT AUTO_INCREMENT PRIMARY KEY,
+    sale_id INT NOT NULL,
+    cash_received DECIMAL(10,2) NOT NULL,
+    change_given DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    net_amount DECIMAL(10,2) NOT NULL,
+    transaction_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    user_id INT,
+    FOREIGN KEY (sale_id) REFERENCES Sales(sale_id) ON DELETE CASCADE
+    );
 
 -- Sale Details Table (Individual items in each sale)
 CREATE TABLE IF NOT EXISTS Sale_Details (
@@ -170,3 +184,8 @@ UNION ALL
 SELECT 'Audit_Logs', COUNT(*) FROM Audit_Logs
 UNION ALL
 SELECT 'Analytics', COUNT(*) FROM Analytics;
+
+
+
+
+-- Entire sales part

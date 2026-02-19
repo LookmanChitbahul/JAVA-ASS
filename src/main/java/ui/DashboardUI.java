@@ -11,8 +11,15 @@ public class DashboardUI {
     private final CardLayout cardLayout;
 
     private final String username;
+    private AnalyticsUI analyticsPanel;
+    private static DashboardUI instance;
+
+    public static DashboardUI getInstance() {
+        return instance;
+    }
 
     public DashboardUI(String username) {
+        instance = this;
         this.username = username;
         frame = new JFrame("Smart Retails & Analytics");
         frame.setTitle("Main");
@@ -22,15 +29,16 @@ public class DashboardUI {
         frame.setLayout(new BorderLayout());
         cardLayout = new CardLayout();
         mainContent = new JPanel(cardLayout);
-        // right side background (dark) #111827
-        mainContent.setBackground(Color.decode("#111827"));
+        mainContent.setBackground(AppTheme.getBgColor());
         mainContent.setOpaque(true);
+
+        analyticsPanel = new AnalyticsUI();
 
         mainContent.add(new Account(username), "Account");
         mainContent.add(createPlaceholder("Dashboard"), "Dashboard");
-        mainContent.add(createPlaceholder("Analytics"), "Analytics");
+        mainContent.add(analyticsPanel, "Analytics");
         mainContent.add(new SalesUI(), "sales");
-        mainContent.add(createPlaceholder("Setting"), "Setting");
+        mainContent.add(new SettingsUI(), "Setting");
         mainContent.add(new CustomerUI(), "Customer");
         mainContent.add(new ProductUI(), "Product");
 
@@ -38,6 +46,24 @@ public class DashboardUI {
         frame.add(mainContent, BorderLayout.CENTER);
 
         frame.setVisible(true);
+    }
+
+    public void reloadAllTabs() {
+        mainContent.removeAll();
+        analyticsPanel = new AnalyticsUI();
+
+        mainContent.add(new Account(username), "Account");
+        mainContent.add(createPlaceholder("Dashboard"), "Dashboard");
+        mainContent.add(analyticsPanel, "Analytics");
+        mainContent.add(new SalesUI(), "sales");
+        mainContent.add(new SettingsUI(), "Setting");
+        mainContent.add(new CustomerUI(), "Customer");
+        mainContent.add(new ProductUI(), "Product");
+
+        mainContent.revalidate();
+        mainContent.repaint();
+        // Return to settings tab so the user sees the confirmation
+        cardLayout.show(mainContent, "Setting");
     }
 
     public DashboardUI() {
@@ -64,7 +90,12 @@ public class DashboardUI {
             button.setFocusPainted(false);
             button.setMargin(new Insets(8, 16, 8, 16));
 
-            button.addActionListener(e -> cardLayout.show(mainContent, item));
+            button.addActionListener(e -> {
+                if ("Analytics".equals(item)) {
+                    analyticsPanel.refreshData();
+                }
+                cardLayout.show(mainContent, item);
+            });
 
             sidebar.add(Box.createVerticalStrut(15));
             sidebar.add(button);
@@ -75,11 +106,11 @@ public class DashboardUI {
 
     private JPanel createPlaceholder(String name) {
         JPanel panel = new JPanel();
-        panel.setBackground(Color.decode("#111827"));
+        panel.setBackground(AppTheme.getBgColor());
         panel.setLayout(new BorderLayout());
         JLabel label = new JLabel(name + " Page (Coming Soon)", SwingConstants.CENTER);
         label.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        label.setForeground(new Color(230, 230, 230));
+        label.setForeground(AppTheme.getTextColor());
         panel.add(label, BorderLayout.CENTER);
         return panel;
     }

@@ -6,13 +6,13 @@ import javax.swing.*;
 import services.AuthService;
 
 public class Account extends JPanel {
-    private static final Color PRIMARY_COLOR = Color.decode("#000428");
-    private static final Color SECONDARY_COLOR = Color.decode("#004e92");
-    private static final Color ACCENT_COLOR = new Color(46, 204, 113);
-    private static final Color DARK_BG = Color.decode("#111827");
-    private static final Color TEXT_COLOR = Color.WHITE;
-    private static final Color CARD_BG = new Color(31, 41, 55);
-    private static final Color BORDER_COLOR = new Color(55, 65, 81);
+    private final Color PRIMARY_COLOR = AppTheme.getGradient1();
+    private final Color SECONDARY_COLOR = AppTheme.getGradient2();
+    private final Color ACCENT_COLOR = new Color(46, 204, 113);
+    private final Color DARK_BG = AppTheme.getBgColor();
+    private final Color TEXT_COLOR = AppTheme.getTextColor();
+    private final Color CARD_BG = AppTheme.getCardColor();
+    private final Color BORDER_COLOR = AppTheme.getBorderColor();
     public String currentUsername;
 
     // UI components for user data
@@ -112,7 +112,7 @@ public class Account extends JPanel {
 
         JLabel subtitleLabel = new JLabel("Manage your profile and preferences");
         subtitleLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        subtitleLabel.setForeground(new Color(160, 174, 192));
+        subtitleLabel.setForeground(new Color(220, 220, 220));
 
         textArea.add(titleLabel);
         textArea.add(subtitleLabel);
@@ -176,7 +176,7 @@ public class Account extends JPanel {
 
         JLabel titleLabel = new JLabel(title);
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 16));
-        titleLabel.setForeground(Color.WHITE);
+        titleLabel.setForeground(AppTheme.getTextColor());
 
         titlePanel.add(titleLabel);
         card.add(titlePanel);
@@ -250,11 +250,11 @@ public class Account extends JPanel {
 
         // Style Input field
         inputField.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        inputField.setForeground(Color.WHITE);
-        inputField.setBackground(new Color(17, 24, 39));
-        inputField.setCaretColor(SECONDARY_COLOR);
+        inputField.setForeground(AppTheme.getTextColor());
+        inputField.setBackground(AppTheme.getCardColor());
+        inputField.setCaretColor(AppTheme.getPrimaryColor());
         inputField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
+                BorderFactory.createLineBorder(AppTheme.getBorderColor(), 1),
                 BorderFactory.createEmptyBorder(5, 10, 5, 10)));
         inputField.setPreferredSize(new Dimension(300, 30));
 
