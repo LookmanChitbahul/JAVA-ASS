@@ -126,13 +126,16 @@ public class PDFUtil {
             contentStream.showText("Date:");
             contentStream.endText();
 
-            contentStream.beginText();
-            contentStream.setFont(normalFont, 10);
-            contentStream.newLineAtOffset(rightCol, yPosition);
-            contentStream.showText(
-                    new SimpleDateFormat("dd/MM/yyyy")
-                            .format(sale.getSaleDate()));
-            contentStream.endText();
+                        contentStream.beginText();
+                        contentStream.setFont(normalFont, 10);
+                        contentStream.newLineAtOffset(rightCol, yPosition);
+                        if (sale.getSaleDate() != null) {
+                                contentStream.showText(
+                                                new SimpleDateFormat("dd/MM/yyyy").format(sale.getSaleDate()));
+                        } else {
+                                contentStream.showText("-");
+                        }
+                        contentStream.endText();
             yPosition -= lineHeight;
 
             // Sale time
@@ -142,13 +145,15 @@ public class PDFUtil {
             contentStream.showText("Time:");
             contentStream.endText();
 
-            contentStream.beginText();
-            contentStream.setFont(normalFont, 10);
-            contentStream.newLineAtOffset(rightCol, yPosition);
-            contentStream.showText(
-                    new SimpleDateFormat("HH:mm:ss")
-                            .format(sale.getSaleDate()));
-            contentStream.endText();
+                        contentStream.beginText();
+                        contentStream.setFont(normalFont, 10);
+                        contentStream.newLineAtOffset(rightCol, yPosition);
+                        if (sale.getSaleDate() != null) {
+                                contentStream.showText(new SimpleDateFormat("HH:mm:ss").format(sale.getSaleDate()));
+                        } else {
+                                contentStream.showText("-");
+                        }
+                        contentStream.endText();
             yPosition -= lineHeight;
 
             // Customer ID
@@ -441,26 +446,32 @@ public class PDFUtil {
             // Close the content stream
             contentStream.close();
 
-            // Save and close the PDF document
-            document.save(new File(filePath));
-            document.close();
+                        // Ensure parent directories exist for the output file
+                        File outFile = new File(filePath);
+                        if (outFile.getParentFile() != null && !outFile.getParentFile().exists()) {
+                                outFile.getParentFile().mkdirs();
+                        }
+
+                        // Save and close the PDF document
+                        document.save(outFile);
+                        document.close();
 
             System.out.println("✓ PDF receipt generated: " + filePath);
             return true;
 
-        } catch (IOException e) {
-            System.err.println("✗ Error generating PDF: " + e.getMessage());
-            e.printStackTrace();
+                } catch (Exception e) {
+                        System.err.println("✗ Error generating PDF: " + e.getMessage());
+                        e.printStackTrace();
 
-            // Ensure document is closed even if an error occurs
-            if (document != null) {
-                try {
-                    document.close();
-                } catch (IOException ex) {
-                    ex.printStackTrace();
+                        // Ensure document is closed even if an error occurs
+                        if (document != null) {
+                                try {
+                                        document.close();
+                                } catch (IOException ex) {
+                                        ex.printStackTrace();
+                                }
+                        }
+                        return false;
                 }
-            }
-            return false;
-        }
     }
 }

@@ -5,6 +5,7 @@ import java.sql.Timestamp;
 public class SaleDetail {
     private int saleDetailId;
     private int saleId;
+    private Integer createdBy;
     private int productId;
     private String productName;
     private int quantity;
@@ -30,6 +31,9 @@ public class SaleDetail {
 
     public int getSaleId() { return saleId; }
     public void setSaleId(int saleId) { this.saleId = saleId; }
+
+    public Integer getCreatedBy() { return createdBy; }
+    public void setCreatedBy(Integer createdBy) { this.createdBy = createdBy; }
 
     public int getProductId() { return productId; }
     public void setProductId(int productId) { this.productId = productId; }

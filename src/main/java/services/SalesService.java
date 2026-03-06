@@ -1,13 +1,13 @@
 package services;
 
-import models.Sale;
-import models.SaleDetail;
 import database.DBConnection;
-import utils.PDFUtil;
-
+import java.io.File;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import models.Sale;
+import models.SaleDetail;
+import utils.PDFUtil;
 
 public class SalesService {
 
@@ -23,21 +23,21 @@ public class SalesService {
             conn.setAutoCommit(false);
 
             // Insert into Sales table
-            String sqlSale = "INSERT INTO Sales (customer_id, user_id, total_amount, " +
-                    "discount, final_amount, payment_method, status, notes, created_by, " +
+            String sqlSale = "INSERT INTO Sales (customer_id, user_id, created_by, total_amount, " +
+                    "discount, final_amount, payment_method, status, notes, " +
                     "cash_received, change_given) " +
                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             pstmtSale = conn.prepareStatement(sqlSale, Statement.RETURN_GENERATED_KEYS);
             pstmtSale.setInt(1, sale.getCustomerId());
             pstmtSale.setInt(2, sale.getUserId());
-            pstmtSale.setDouble(3, sale.getTotalAmount());
-            pstmtSale.setDouble(4, sale.getDiscount());
-            pstmtSale.setDouble(5, sale.getFinalAmount());
-            pstmtSale.setString(6, sale.getPaymentMethod());
-            pstmtSale.setString(7, sale.getStatus());
-            pstmtSale.setString(8, sale.getNotes());
-            pstmtSale.setString(9, sale.getCreatedBy());
+            pstmtSale.setInt(3, sale.getCreatedBy() != null ? sale.getCreatedBy() : 1);
+            pstmtSale.setDouble(4, sale.getTotalAmount());
+            pstmtSale.setDouble(5, sale.getDiscount());
+            pstmtSale.setDouble(6, sale.getFinalAmount());
+            pstmtSale.setString(7, sale.getPaymentMethod());
+            pstmtSale.setString(8, sale.getStatus());
+            pstmtSale.setString(9, sale.getNotes());
 
             // Handle cash fields (****could be null for non-cash payments****)
             if (sale.getCashReceived() != null) {
@@ -70,19 +70,20 @@ public class SalesService {
 
             // Insert sale details into table
             if (sale.getSaleDetails() != null && !sale.getSaleDetails().isEmpty()) {
-                String sqlDetail = "INSERT INTO Sale_Details (sale_id, product_id, " +
+                String sqlDetail = "INSERT INTO Sale_Details (sale_id, created_by, product_id, " +
                         "quantity, unit_price, total_price, discount) " +
-                        "VALUES (?, ?, ?, ?, ?, ?)";
+                        "VALUES (?, ?, ?, ?, ?, ?, ?)";
 
                 pstmtDetail = conn.prepareStatement(sqlDetail);
 
                 for (SaleDetail detail : sale.getSaleDetails()) {
                     pstmtDetail.setInt(1, saleId);
-                    pstmtDetail.setInt(2, detail.getProductId());
-                    pstmtDetail.setInt(3, detail.getQuantity());
-                    pstmtDetail.setDouble(4, detail.getUnitPrice());
-                    pstmtDetail.setDouble(5, detail.getTotalPrice());
-                    pstmtDetail.setDouble(6, detail.getDiscount());
+                    pstmtDetail.setInt(2, detail.getCreatedBy() != null ? detail.getCreatedBy() : sale.getCreatedBy() != null ? sale.getCreatedBy() : 1);
+                    pstmtDetail.setInt(3, detail.getProductId());
+                    pstmtDetail.setInt(4, detail.getQuantity());
+                    pstmtDetail.setDouble(5, detail.getUnitPrice());
+                    pstmtDetail.setDouble(6, detail.getTotalPrice());
+                    pstmtDetail.setDouble(7, detail.getDiscount());
                     pstmtDetail.addBatch();
                 }
 
@@ -168,7 +169,12 @@ public class SalesService {
                 sale.setPaymentMethod(rs.getString("payment_method"));
                 sale.setStatus(rs.getString("status"));
                 sale.setNotes(rs.getString("notes"));
-                sale.setCreatedBy(rs.getString("created_by"));
+                int cb = rs.getInt("created_by");
+                if (rs.wasNull()) {
+                    sale.setCreatedBy(null);
+                } else {
+                    sale.setCreatedBy(cb);
+                }
                 sale.setCreatedAt(rs.getTimestamp("created_at"));
                 sale.setUpdatedAt(rs.getTimestamp("updated_at"));
 
@@ -280,7 +286,31 @@ public class SalesService {
                 return false;
             }
 
-            return PDFUtil.generateReceipt(sale, filePath);
+            System.out.println("Generating receipt for saleId=" + saleId + ", filePath=" + filePath);
+            System.out.println("Sale loaded: " + sale);
+            boolean ok = PDFUtil.generateReceipt(sale, filePath);
+            System.out.println("PDFUtil.generateReceipt returned: " + ok);
+
+            if (!ok) {
+                // fallback: try saving into ./receipts/receipt_<id>.pdf
+                try {
+                    String fallbackDir = "receipts";
+                    File dir = new File(fallbackDir);
+                    if (!dir.exists()) dir.mkdirs();
+                    String fallbackPath = fallbackDir + File.separator + "receipt_" + saleId + ".pdf";
+                    System.out.println("Attempting fallback receipt path: " + fallbackPath);
+                    ok = PDFUtil.generateReceipt(sale, fallbackPath);
+                    System.out.println("Fallback generateReceipt returned: " + ok);
+                    if (ok) {
+                        System.out.println("Receipt saved to fallback path: " + fallbackPath);
+                    }
+                } catch (Exception ex) {
+                    System.err.println("Fallback receipt save also failed: " + ex.getMessage());
+                    ex.printStackTrace();
+                }
+            }
+
+            return ok;
 
         } catch (Exception e) {
             e.printStackTrace();
