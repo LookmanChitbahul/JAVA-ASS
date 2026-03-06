@@ -964,12 +964,12 @@ public class SalesUI extends JPanel {
         // Create Sale object
         Sale sale = new Sale(customerId, currentSubtotal);
         sale.setUserId(1);
+        sale.setCreatedBy(1); // Use user ID 1 for now (logged in user)
         sale.setDiscount(0.0);
         sale.setTotalAmount(currentSubtotal);
         sale.setPaymentMethod(paymentMethod);
         sale.setStatus("Completed");
         sale.setNotes("Sale from SalesUI");
-        sale.setCreatedBy("SalesUI");
 
         // Set cash fields if cash payment
         if ("Cash".equals(paymentMethod)) {
@@ -985,6 +985,7 @@ public class SalesUI extends JPanel {
                     cartItem.productName,
                     cartItem.unitPrice,
                     cartItem.quantity);
+            detail.setCreatedBy(1); // Set user ID
             detail.setTotalPrice(cartItem.getSubtotal());
             detail.setDiscount(0.0);
             saleDetails.add(detail);
@@ -1056,10 +1057,17 @@ public class SalesUI extends JPanel {
         if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
             File file = fileChooser.getSelectedFile();
 
+            // Ensure filename ends with .pdf
+            if (!file.getName().toLowerCase().endsWith(".pdf")) {
+                file = new File(file.getParentFile(), file.getName() + ".pdf");
+            }
+
+            final File targetFile = file;
+
             SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
                 @Override
                 protected Boolean doInBackground() throws Exception {
-                    return salesService.generateReceiptPDF(currentSaleId, file.getAbsolutePath());
+                    return salesService.generateReceiptPDF(currentSaleId, targetFile.getAbsolutePath());
                 }
 
                 @Override
@@ -1077,7 +1085,7 @@ public class SalesUI extends JPanel {
 
                             if (option == JOptionPane.YES_OPTION && Desktop.isDesktopSupported()) {
                                 try {
-                                    Desktop.getDesktop().open(file);
+                                    Desktop.getDesktop().open(targetFile);
                                 } catch (IOException ex) {
                                     showError("Cannot open file: " + ex.getMessage());
                                 }

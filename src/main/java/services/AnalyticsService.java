@@ -13,32 +13,41 @@ public class AnalyticsService {
                 return data;
 
             String interval = getTimeInterval(timePeriod);
-            String col = getSalesAmountColumn(conn);
-            String table = getSalesTable(conn);
 
-            String sql = "SELECT DATE(s.sale_date) as date, SUM(s." + col + ") as total " +
-                    "FROM " + table + " s ";
+            // If filtering by category, sum sale detail totals per date (avoids duplicating sale totals when joining)
+            if ("All Categories".equals(category)) {
+                String table = getSalesTable(conn);
+                String col = getSalesAmountColumn(conn);
+                String sql = "SELECT DATE(s.sale_date) as date, SUM(s." + col + ") as total " +
+                        "FROM " + table + " s " +
+                        "WHERE s.sale_date >= " + interval + " " +
+                        "GROUP BY DATE(s.sale_date) ORDER BY date ASC";
 
-            if (!"All Categories".equals(category)) {
-                sql += "JOIN sale_details sd ON s.sale_id = sd.sale_id " +
-                        "JOIN products p ON sd.product_id = p.product_id ";
-            }
-
-            sql += "WHERE s.sale_date >= " + interval + " ";
-
-            if (!"All Categories".equals(category)) {
-                sql += "AND p.category = ? ";
-            }
-
-            sql += "GROUP BY DATE(s.sale_date) ORDER BY date ASC";
-
-            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                if (!"All Categories".equals(category)) {
-                    pstmt.setString(1, category);
-                }
-                try (ResultSet rs = pstmt.executeQuery()) {
+                try (PreparedStatement pstmt = conn.prepareStatement(sql);
+                     ResultSet rs = pstmt.executeQuery()) {
                     while (rs.next()) {
                         data.put(rs.getString("date"), rs.getDouble("total"));
+                    }
+                }
+            } else {
+                String sTable = getSaleDetailsTable(conn);
+                String pTable = getProductsTable(conn);
+                String salesTable = getSalesTable(conn);
+                String col = getSubtotalColumn(conn);
+
+                String sql = "SELECT DATE(s.sale_date) as date, SUM(sd." + col + ") as total " +
+                        "FROM " + sTable + " sd " +
+                        "JOIN " + salesTable + " s ON sd.sale_id = s.sale_id " +
+                        "JOIN " + pTable + " p ON sd.product_id = p.product_id " +
+                        "WHERE s.sale_date >= " + interval + " AND p.category = ? " +
+                        "GROUP BY DATE(s.sale_date) ORDER BY date ASC";
+
+                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setString(1, category);
+                    try (ResultSet rs = pstmt.executeQuery()) {
+                        while (rs.next()) {
+                            data.put(rs.getString("date"), rs.getDouble("total"));
+                        }
                     }
                 }
             }
@@ -152,7 +161,7 @@ public class AnalyticsService {
     }
 
     private String getSalesTable(Connection conn) {
-        return checkTableExists(conn, "Sales") ? "Sales" : "sales";
+        return checkTableExists(conn, "Sales") ? "Sales" : "Sales";
     }
 
     private String getProductsTable(Connection conn) {

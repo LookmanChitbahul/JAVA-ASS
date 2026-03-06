@@ -6,7 +6,7 @@ import java.sql.SQLException;
 
 public class DBConnection {
 
-    // === DATABASE CONFIGURATION ===
+   
     // === DATABASE CONFIGURATION ===
     private static String URL;
     private static String USER;
@@ -24,7 +24,7 @@ public class DBConnection {
                 // Fallback to defaults if config is missing to avoid NPE
                 URL = "jdbc:mysql://localhost:3306/smart_retail";
                 USER = "root";
-                PASSWORD = "";
+                PASSWORD = "root@12345678";
                 return;
             }
             prop.load(input);
@@ -60,18 +60,18 @@ public class DBConnection {
             for (String pwd : passwords) {
                 try {
                     Connection conn = DriverManager.getConnection(URL, USER, pwd.trim());
-                    System.out.println("â?? Connection successful!");
+                    System.out.println(" Connection successful!");
                     return conn;
                 } catch (SQLException e) {
                     // Try next password...
                 }
             }
 
-            System.err.println("â?? ERROR: Could not connect to the database with any provided password!");
+            System.err.println("ERROR: Could not connect to the database with any provided password!");
             return null;
 
         } catch (ClassNotFoundException e) {
-            System.err.println("â?? ERROR: MySQL JDBC Driver not found!");
+            System.err.println(" ERROR: MySQL JDBC Driver not found!");
             e.printStackTrace();
             return null;
         }

@@ -53,7 +53,7 @@ public class DashboardUI {
         analyticsPanel = new AnalyticsUI();
 
         mainContent.add(new Account(username), "Account");
-        mainContent.add(createPlaceholder("Dashboard"), "Dashboard");
+       
         mainContent.add(analyticsPanel, "Analytics");
         mainContent.add(new SalesUI(), "sales");
         mainContent.add(new SettingsUI(), "Setting");
@@ -77,7 +77,7 @@ public class DashboardUI {
         sidebar.setOpaque(false);
 
         String[] menuItems = {
-                "Dashboard", "Customer", "Product",
+                 "Customer", "Product",
                 "Analytics", "sales", "Setting", "Account" };
 
         for (String item : menuItems) {

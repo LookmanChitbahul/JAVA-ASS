@@ -8,6 +8,7 @@ public class Sale {
     private int saleId;
     private int customerId;
     private int userId;
+    private Integer createdBy;
     private Date saleDate;
     private double totalAmount;
     private double discount;
@@ -15,7 +16,6 @@ public class Sale {
     private String paymentMethod;
     private String status;
     private String notes;
-    private String createdBy;
     private Timestamp createdAt;
     private Timestamp updatedAt;
     private List<SaleDetail> saleDetails;
@@ -81,8 +81,8 @@ public class Sale {
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
 
-    public String getCreatedBy() { return createdBy; }
-    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+    public Integer getCreatedBy() { return createdBy; }
+    public void setCreatedBy(Integer createdBy) { this.createdBy = createdBy; }
 
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
