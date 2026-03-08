@@ -20,11 +20,11 @@ import java.util.List;
 
 public class PDFUtil {
 
-    /**
-     * Generates a PDF receipt for a given Sale object
-     * Sale containing all sale information
-     * Path where the PDF will be saved
-     * return true if PDF generation is successful, else false
+    /*
+      Generates a PDF receipt for a given Sale object
+      Sale containing all sale information
+      Path where the PDF will be saved
+      return true if PDF generation is successful, else false
      */
     public static boolean generateReceipt(Sale sale, String filePath) {
 

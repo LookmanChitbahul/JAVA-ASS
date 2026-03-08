@@ -9,19 +9,15 @@ import models.Sale;
 import models.SaleDetail;
 import utils.PDFUtil;
 
-/**
- * SalesService.java
- * Handles all sales-related database operations.
- * Supports both quick cash sales (walk-in customers) and regular sales (registered customers).
+/*
+SalesService.java
+Handles all sales-related database operations.
+Supports both quick cash sales (walk-in customers) and regular sales (registered customers).
  */
 public class SalesService {
 
-    /**
-     * Creates a new sale in the database
-     * @param sale The Sale object containing all sale information
-     * @return The generated sale ID
-     * @throws SQLException If a database error occurs
-     */
+    //Creates a new sale in the database
+
     public int createSale(Sale sale) throws SQLException {
         Connection conn = null;
         PreparedStatement pstmtSale = null;
@@ -131,12 +127,8 @@ public class SalesService {
         }
     }
 
-    /**
-     * Updates product stock levels after a sale
-     * @param saleDetails List of sold items
-     * @param conn Database connection
-     * @throws SQLException If database error occurs
-     */
+    //Updates product stock levels after a sale
+
     private void updateProductStock(List<SaleDetail> saleDetails, Connection conn) throws SQLException {
         String updateQuery = "UPDATE Products SET stock = stock - ? WHERE product_id = ?";
         try (PreparedStatement stmt = conn.prepareStatement(updateQuery)) {
@@ -170,12 +162,8 @@ public class SalesService {
         }
     }
 
-    /**
-     * Retrieves a sale by its ID
-     * @param saleId The ID of the sale to retrieve
-     * @return Sale object if found, null otherwise
-     * @throws SQLException If database error occurs
-     */
+    //Retrieves a sale by its ID
+
     public Sale getSaleById(int saleId) throws SQLException {
         String sql = "SELECT s.*, CONCAT(c.first_name, ' ', c.last_name) as customer_name, " +
                 "c.phone as customer_contact " +
@@ -223,12 +211,8 @@ public class SalesService {
         return null;
     }
 
-    /**
-     * Retrieves sale details for a specific sale
-     * @param saleId The ID of the sale
-     * @return List of SaleDetail objects
-     * @throws SQLException If database error occurs
-     */
+    //Retrieves sale details for a specific sale
+
     public List<SaleDetail> getSaleDetails(int saleId) throws SQLException {
         List<SaleDetail> details = new ArrayList<>();
         String sql = "SELECT sd.*, p.name as product_name " +
@@ -259,11 +243,8 @@ public class SalesService {
         return details;
     }
 
-    /**
-     * Gets today's total cash in register
-     * @return Total cash amount
-     * @throws SQLException If database error occurs
-     */
+    //Gets today's total cash in register
+
     public double getTodayCashTotal() throws SQLException {
         String sql = "SELECT COALESCE(SUM(final_amount), 0) as total_cash " +
                 "FROM Sales " +
@@ -282,11 +263,8 @@ public class SalesService {
         return 0.0;
     }
 
-    /**
-     * Gets today's cash transactions summary
-     * @return List of summary data [count, received, change, net]
-     * @throws SQLException If database error occurs
-     */
+    //Gets today's cash transactions summary
+
     public List<Object[]> getTodayCashSummary() throws SQLException {
         List<Object[]> summary = new ArrayList<>();
         String sql = "SELECT " +
@@ -316,12 +294,8 @@ public class SalesService {
         return summary;
     }
 
-    /**
-     * Generates a PDF receipt for a sale
-     * @param saleId The ID of the sale
-     * @param filePath The path to save the PDF
-     * @return true if successful, false otherwise
-     */
+    //Generates a PDF receipt for a sale
+
     public boolean generateReceiptPDF(int saleId, String filePath) {
         try {
             Sale sale = getSaleById(saleId);
@@ -347,11 +321,8 @@ public class SalesService {
         }
     }
 
-    /**
-     * Closes database resources
-     * @param rs ResultSet to close
-     * @param statements Statements to close
-     */
+    //Closes database resources
+
     private void closeResources(ResultSet rs, Statement... statements) {
         try {
             if (rs != null) rs.close();

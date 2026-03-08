@@ -18,18 +18,10 @@ public class SaleDetail {
     private double discount;
     private Timestamp createdAt;
 
-    /**
-     * Default constructor
-     */
+    //Constructors
+
     public SaleDetail() {}
 
-    /**
-     * Constructor for creating a new sale detail item
-     * @param productId The ID of the product
-     * @param productName The name of the product
-     * @param unitPrice The price per unit
-     * @param quantity The quantity purchased
-     */
     public SaleDetail(int productId, String productName, double unitPrice, int quantity) {
         this.productId = productId;
         this.productName = productName;
@@ -79,17 +71,14 @@ public class SaleDetail {
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
 
-    /**
-     * Calculates the total price based on quantity, unit price, and discount
-     */
+    //Calculates the total price based on quantity, unit price, and discount
+
     private void calculateTotalPrice() {
         this.totalPrice = (unitPrice * quantity) - discount;
     }
 
-    /**
-     * Gets the subtotal for this item (without discount)
-     * @return The raw subtotal
-     */
+    //Gets the subtotal for this item (without discount)
+
     public double getSubtotal() {
         return unitPrice * quantity;
     }
