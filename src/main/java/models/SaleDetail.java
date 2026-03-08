@@ -2,10 +2,14 @@ package models;
 
 import java.sql.Timestamp;
 
+/**
+ * SaleDetail.java
+ * Represents an individual item within a sales transaction.
+ * Contains product details, quantity, pricing, and discounts.
+ */
 public class SaleDetail {
     private int saleDetailId;
     private int saleId;
-    private Integer createdBy;
     private int productId;
     private String productName;
     private int quantity;
@@ -14,9 +18,18 @@ public class SaleDetail {
     private double discount;
     private Timestamp createdAt;
 
-    // Constructors
+    /**
+     * Default constructor
+     */
     public SaleDetail() {}
 
+    /**
+     * Constructor for creating a new sale detail item
+     * @param productId The ID of the product
+     * @param productName The name of the product
+     * @param unitPrice The price per unit
+     * @param quantity The quantity purchased
+     */
     public SaleDetail(int productId, String productName, double unitPrice, int quantity) {
         this.productId = productId;
         this.productName = productName;
@@ -31,9 +44,6 @@ public class SaleDetail {
 
     public int getSaleId() { return saleId; }
     public void setSaleId(int saleId) { this.saleId = saleId; }
-
-    public Integer getCreatedBy() { return createdBy; }
-    public void setCreatedBy(Integer createdBy) { this.createdBy = createdBy; }
 
     public int getProductId() { return productId; }
     public void setProductId(int productId) { this.productId = productId; }
@@ -54,7 +64,7 @@ public class SaleDetail {
     }
 
     public double getTotalPrice() {
-        calculateTotalPrice(); // Ensure it's calculated
+        calculateTotalPrice(); // Ensure it's always calculated
         return totalPrice;
     }
 
@@ -69,13 +79,24 @@ public class SaleDetail {
     public Timestamp getCreatedAt() { return createdAt; }
     public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
 
-    // logic to calculate total price
+    /**
+     * Calculates the total price based on quantity, unit price, and discount
+     */
     private void calculateTotalPrice() {
         this.totalPrice = (unitPrice * quantity) - discount;
     }
 
+    /**
+     * Gets the subtotal for this item (without discount)
+     * @return The raw subtotal
+     */
+    public double getSubtotal() {
+        return unitPrice * quantity;
+    }
+
     @Override
     public String toString() {
-        return productName + " x" + quantity + " @ $" + unitPrice + " = $" + getTotalPrice();
+        return String.format("%s x%d @ $%.2f = $%.2f",
+                productName, quantity, unitPrice, getTotalPrice());
     }
 }

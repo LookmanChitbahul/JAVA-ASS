@@ -9,9 +9,19 @@ import models.Sale;
 import models.SaleDetail;
 import utils.PDFUtil;
 
+/**
+ * SalesService.java
+ * Handles all sales-related database operations.
+ * Supports both quick cash sales (walk-in customers) and regular sales (registered customers).
+ */
 public class SalesService {
 
-    // Creating new sale
+    /**
+     * Creates a new sale in the database
+     * @param sale The Sale object containing all sale information
+     * @return The generated sale ID
+     * @throws SQLException If a database error occurs
+     */
     public int createSale(Sale sale) throws SQLException {
         Connection conn = null;
         PreparedStatement pstmtSale = null;
@@ -22,34 +32,33 @@ public class SalesService {
             conn = DBConnection.getConnection();
             conn.setAutoCommit(false);
 
-            // Insert into Sales table
-            String sqlSale = "INSERT INTO Sales (customer_id, user_id, created_by, total_amount, " +
+            // Insert into Sales table - REMOVED created_by
+            String sqlSale = "INSERT INTO Sales (customer_id, user_id, total_amount, " +
                     "discount, final_amount, payment_method, status, notes, " +
                     "cash_received, change_given) " +
-                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
             pstmtSale = conn.prepareStatement(sqlSale, Statement.RETURN_GENERATED_KEYS);
             pstmtSale.setInt(1, sale.getCustomerId());
             pstmtSale.setInt(2, sale.getUserId());
-            pstmtSale.setInt(3, sale.getCreatedBy() != null ? sale.getCreatedBy() : 1);
-            pstmtSale.setDouble(4, sale.getTotalAmount());
-            pstmtSale.setDouble(5, sale.getDiscount());
-            pstmtSale.setDouble(6, sale.getFinalAmount());
-            pstmtSale.setString(7, sale.getPaymentMethod());
-            pstmtSale.setString(8, sale.getStatus());
-            pstmtSale.setString(9, sale.getNotes());
+            pstmtSale.setDouble(3, sale.getTotalAmount());
+            pstmtSale.setDouble(4, sale.getDiscount());
+            pstmtSale.setDouble(5, sale.getFinalAmount());
+            pstmtSale.setString(6, sale.getPaymentMethod());
+            pstmtSale.setString(7, sale.getStatus());
+            pstmtSale.setString(8, sale.getNotes());
 
-            // Handle cash fields (****could be null for non-cash payments****)
+            // Handle cash fields (null for non-cash payments)
             if (sale.getCashReceived() != null) {
-                pstmtSale.setDouble(10, sale.getCashReceived());
+                pstmtSale.setDouble(9, sale.getCashReceived());
             } else {
-                pstmtSale.setNull(10, Types.DOUBLE);
+                pstmtSale.setNull(9, Types.DOUBLE);
             }
 
             if (sale.getChangeGiven() != null) {
-                pstmtSale.setDouble(11, sale.getChangeGiven());
+                pstmtSale.setDouble(10, sale.getChangeGiven());
             } else {
-                pstmtSale.setNull(11, Types.DOUBLE);
+                pstmtSale.setNull(10, Types.DOUBLE);
             }
 
             int rowsAffected = pstmtSale.executeUpdate();
@@ -68,28 +77,27 @@ public class SalesService {
                 throw new SQLException("Creating sale failed, no ID obtained.");
             }
 
-            // Insert sale details into table
+            // Insert sale details - REMOVED created_by
             if (sale.getSaleDetails() != null && !sale.getSaleDetails().isEmpty()) {
-                String sqlDetail = "INSERT INTO Sale_Details (sale_id, created_by, product_id, " +
+                String sqlDetail = "INSERT INTO Sale_Details (sale_id, product_id, " +
                         "quantity, unit_price, total_price, discount) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?)";
+                        "VALUES (?, ?, ?, ?, ?, ?)";
 
                 pstmtDetail = conn.prepareStatement(sqlDetail);
 
                 for (SaleDetail detail : sale.getSaleDetails()) {
                     pstmtDetail.setInt(1, saleId);
-                    pstmtDetail.setInt(2, detail.getCreatedBy() != null ? detail.getCreatedBy() : sale.getCreatedBy() != null ? sale.getCreatedBy() : 1);
-                    pstmtDetail.setInt(3, detail.getProductId());
-                    pstmtDetail.setInt(4, detail.getQuantity());
-                    pstmtDetail.setDouble(5, detail.getUnitPrice());
-                    pstmtDetail.setDouble(6, detail.getTotalPrice());
-                    pstmtDetail.setDouble(7, detail.getDiscount());
+                    pstmtDetail.setInt(2, detail.getProductId());
+                    pstmtDetail.setInt(3, detail.getQuantity());
+                    pstmtDetail.setDouble(4, detail.getUnitPrice());
+                    pstmtDetail.setDouble(5, detail.getTotalPrice());
+                    pstmtDetail.setDouble(6, detail.getDiscount());
                     pstmtDetail.addBatch();
                 }
 
                 pstmtDetail.executeBatch();
 
-                // Updating product stock
+                // Update product stock
                 updateProductStock(sale.getSaleDetails(), conn);
             }
 
@@ -99,6 +107,14 @@ public class SalesService {
             }
 
             conn.commit();
+
+            // Log success message
+            if (sale.isQuickCashSale()) {
+                System.out.println("Quick cash sale #" + saleId + " processed successfully");
+            } else {
+                System.out.println("Regular sale #" + saleId + " processed successfully");
+            }
+
             return saleId;
 
         } catch (SQLException e) {
@@ -115,39 +131,54 @@ public class SalesService {
         }
     }
 
+    /**
+     * Updates product stock levels after a sale
+     * @param saleDetails List of sold items
+     * @param conn Database connection
+     * @throws SQLException If database error occurs
+     */
     private void updateProductStock(List<SaleDetail> saleDetails, Connection conn) throws SQLException {
         String updateQuery = "UPDATE Products SET stock = stock - ? WHERE product_id = ?";
-        PreparedStatement stmt = conn.prepareStatement(updateQuery);
-
-        for (SaleDetail detail : saleDetails) {
-            stmt.setInt(1, detail.getQuantity());
-            stmt.setInt(2, detail.getProductId());
-            stmt.addBatch();
+        try (PreparedStatement stmt = conn.prepareStatement(updateQuery)) {
+            for (SaleDetail detail : saleDetails) {
+                stmt.setInt(1, detail.getQuantity());
+                stmt.setInt(2, detail.getProductId());
+                stmt.addBatch();
+            }
+            stmt.executeBatch();
         }
-
-        stmt.executeBatch();
-        stmt.close();
     }
 
-    // Log cash transaction for daily cash tracking (cash present in register)
+    /**
+     * Logs cash transaction for daily cash tracking
+     * @param sale The sale object
+     * @param conn Database connection
+     * @throws SQLException If database error occurs
+     */
     private void logCashTransaction(Sale sale, Connection conn) throws SQLException {
         String sql = "INSERT INTO Cash_Logs (sale_id, cash_received, change_given, " +
                 "net_amount, transaction_time, user_id) " +
                 "VALUES (?, ?, ?, ?, NOW(), ?)";
 
-        PreparedStatement pstmt = conn.prepareStatement(sql);
-        pstmt.setInt(1, sale.getSaleId());
-        pstmt.setDouble(2, sale.getCashReceived());
-        pstmt.setDouble(3, sale.getChangeGiven() != null ? sale.getChangeGiven() : 0.0);
-        pstmt.setDouble(4, sale.getFinalAmount());
-        pstmt.setInt(5, sale.getUserId());
-        pstmt.executeUpdate();
-        pstmt.close();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, sale.getSaleId());
+            pstmt.setDouble(2, sale.getCashReceived());
+            pstmt.setDouble(3, sale.getChangeGiven() != null ? sale.getChangeGiven() : 0.0);
+            pstmt.setDouble(4, sale.getFinalAmount());
+            pstmt.setInt(5, sale.getUserId());
+            pstmt.executeUpdate();
+        }
     }
 
-    // Get sale by ID
+    /**
+     * Retrieves a sale by its ID
+     * @param saleId The ID of the sale to retrieve
+     * @return Sale object if found, null otherwise
+     * @throws SQLException If database error occurs
+     */
     public Sale getSaleById(int saleId) throws SQLException {
-        String sql = "SELECT s.*, c.full_name as customer_name, c.contact as customer_contact " +
+        String sql = "SELECT s.*, CONCAT(c.first_name, ' ', c.last_name) as customer_name, " +
+                "c.phone as customer_contact " +
                 "FROM Sales s " +
                 "LEFT JOIN customers c ON s.customer_id = c.customer_id " +
                 "WHERE s.sale_id = ?";
@@ -169,24 +200,18 @@ public class SalesService {
                 sale.setPaymentMethod(rs.getString("payment_method"));
                 sale.setStatus(rs.getString("status"));
                 sale.setNotes(rs.getString("notes"));
-                int cb = rs.getInt("created_by");
-                if (rs.wasNull()) {
-                    sale.setCreatedBy(null);
-                } else {
-                    sale.setCreatedBy(cb);
-                }
                 sale.setCreatedAt(rs.getTimestamp("created_at"));
                 sale.setUpdatedAt(rs.getTimestamp("updated_at"));
 
                 // Get cash fields
-                sale.setCashReceived(rs.getDouble("cash_received"));
-                if (rs.wasNull()) {
-                    sale.setCashReceived(null);
+                double cashReceived = rs.getDouble("cash_received");
+                if (!rs.wasNull()) {
+                    sale.setCashReceived(cashReceived);
                 }
 
-                sale.setChangeGiven(rs.getDouble("change_given"));
-                if (rs.wasNull()) {
-                    sale.setChangeGiven(null);
+                double changeGiven = rs.getDouble("change_given");
+                if (!rs.wasNull()) {
+                    sale.setChangeGiven(changeGiven);
                 }
 
                 // Load sale details
@@ -198,56 +223,12 @@ public class SalesService {
         return null;
     }
 
-    // Get today's cash total in the register
-    public double getTodayCashTotal() throws SQLException {
-        String sql = "SELECT COALESCE(SUM(final_amount), 0) as total_cash " +
-                "FROM Sales " +
-                "WHERE payment_method = 'Cash' " +
-                "AND DATE(sale_date) = CURDATE() " +
-                "AND status = 'Completed'";
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return rs.getDouble("total_cash");
-            }
-        }
-        return 0.0;
-    }
-
-    // Get today's cash transactions summary
-    public List<Object[]> getTodayCashSummary() throws SQLException {
-        List<Object[]> summary = new ArrayList<>();
-        String sql = "SELECT " +
-                "COUNT(*) as transaction_count, " +
-                "COALESCE(SUM(cash_received), 0) as total_received, " +
-                "COALESCE(SUM(change_given), 0) as total_change, " +
-                "COALESCE(SUM(final_amount), 0) as net_cash " +
-                "FROM Sales " +
-                "WHERE payment_method = 'Cash' " +
-                "AND DATE(sale_date) = CURDATE() " +
-                "AND status = 'Completed'";
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                Object[] row = {
-                        rs.getInt("transaction_count"),
-                        rs.getDouble("total_received"),
-                        rs.getDouble("total_change"),
-                        rs.getDouble("net_cash")
-                };
-                summary.add(row);
-            }
-        }
-        return summary;
-    }
-
-    // Get sale details
+    /**
+     * Retrieves sale details for a specific sale
+     * @param saleId The ID of the sale
+     * @return List of SaleDetail objects
+     * @throws SQLException If database error occurs
+     */
     public List<SaleDetail> getSaleDetails(int saleId) throws SQLException {
         List<SaleDetail> details = new ArrayList<>();
         String sql = "SELECT sd.*, p.name as product_name " +
@@ -278,7 +259,69 @@ public class SalesService {
         return details;
     }
 
-    // Generate receipt PDF format like in supermarket
+    /**
+     * Gets today's total cash in register
+     * @return Total cash amount
+     * @throws SQLException If database error occurs
+     */
+    public double getTodayCashTotal() throws SQLException {
+        String sql = "SELECT COALESCE(SUM(final_amount), 0) as total_cash " +
+                "FROM Sales " +
+                "WHERE payment_method = 'Cash' " +
+                "AND DATE(sale_date) = CURDATE() " +
+                "AND status = 'Completed'";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getDouble("total_cash");
+            }
+        }
+        return 0.0;
+    }
+
+    /**
+     * Gets today's cash transactions summary
+     * @return List of summary data [count, received, change, net]
+     * @throws SQLException If database error occurs
+     */
+    public List<Object[]> getTodayCashSummary() throws SQLException {
+        List<Object[]> summary = new ArrayList<>();
+        String sql = "SELECT " +
+                "COUNT(*) as transaction_count, " +
+                "COALESCE(SUM(cash_received), 0) as total_received, " +
+                "COALESCE(SUM(change_given), 0) as total_change, " +
+                "COALESCE(SUM(final_amount), 0) as net_cash " +
+                "FROM Sales " +
+                "WHERE payment_method = 'Cash' " +
+                "AND DATE(sale_date) = CURDATE() " +
+                "AND status = 'Completed'";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                Object[] row = {
+                        rs.getInt("transaction_count"),
+                        rs.getDouble("total_received"),
+                        rs.getDouble("total_change"),
+                        rs.getDouble("net_cash")
+                };
+                summary.add(row);
+            }
+        }
+        return summary;
+    }
+
+    /**
+     * Generates a PDF receipt for a sale
+     * @param saleId The ID of the sale
+     * @param filePath The path to save the PDF
+     * @return true if successful, false otherwise
+     */
     public boolean generateReceiptPDF(int saleId, String filePath) {
         try {
             Sale sale = getSaleById(saleId);
@@ -286,39 +329,29 @@ public class SalesService {
                 return false;
             }
 
-            System.out.println("Generating receipt for saleId=" + saleId + ", filePath=" + filePath);
-            System.out.println("Sale loaded: " + sale);
-            boolean ok = PDFUtil.generateReceipt(sale, filePath);
-            System.out.println("PDFUtil.generateReceipt returned: " + ok);
+            System.out.println("Generating receipt for sale #" + saleId);
+            boolean success = PDFUtil.generateReceipt(sale, filePath);
 
-            if (!ok) {
-                // fallback: try saving into ./receipts/receipt_<id>.pdf
-                try {
-                    String fallbackDir = "receipts";
-                    File dir = new File(fallbackDir);
-                    if (!dir.exists()) dir.mkdirs();
-                    String fallbackPath = fallbackDir + File.separator + "receipt_" + saleId + ".pdf";
-                    System.out.println("Attempting fallback receipt path: " + fallbackPath);
-                    ok = PDFUtil.generateReceipt(sale, fallbackPath);
-                    System.out.println("Fallback generateReceipt returned: " + ok);
-                    if (ok) {
-                        System.out.println("Receipt saved to fallback path: " + fallbackPath);
-                    }
-                } catch (Exception ex) {
-                    System.err.println("Fallback receipt save also failed: " + ex.getMessage());
-                    ex.printStackTrace();
-                }
+            if (success) {
+                System.out.println("Receipt saved to: " + filePath);
+            } else {
+                System.err.println("Failed to generate receipt for sale #" + saleId);
             }
 
-            return ok;
+            return success;
 
         } catch (Exception e) {
+            System.err.println("Error generating receipt: " + e.getMessage());
             e.printStackTrace();
             return false;
         }
     }
 
-    // Close resources helper such that no memory wasted
+    /**
+     * Closes database resources
+     * @param rs ResultSet to close
+     * @param statements Statements to close
+     */
     private void closeResources(ResultSet rs, Statement... statements) {
         try {
             if (rs != null) rs.close();
@@ -326,7 +359,7 @@ public class SalesService {
                 if (stmt != null) stmt.close();
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("Error closing resources: " + e.getMessage());
         }
     }
 }

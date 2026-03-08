@@ -16,19 +16,33 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
 
+/**
+ * SalesUI.java
+ * Main user interface for processing sales transactions.
+ * Supports two types of sales:
+ * 1. Quick Cash Sales - For walk-in customers (no customer details required)
+ * 2. Regular Sales - For registered customers (requires customer ID and details)
+ *
+ * Features:
+ * - Product browsing and search
+ * - Shopping cart management
+ * - Cash handling with change calculation
+ * - Receipt generation
+ * - Daily cash summary
+ */
 public class SalesUI extends JPanel {
-    // Services used
+    // Services
     private final SalesService salesService;
     private final ProductService productService;
     private final CustomerService customerService;
 
-    // UI Components - Left Panel (Products part)
+    // UI Components - Left Panel (Products)
     private JTextField txtSearchProduct;
     private JTable tblAvailableProducts;
     private DefaultTableModel productsTableModel;
     private JSpinner spnQuantity;
 
-    // UI Components - Right Panel (Cart part)
+    // UI Components - Right Panel (Cart)
     private JTable tblCart;
     private DefaultTableModel cartTableModel;
     private JLabel lblSubtotal;
@@ -38,15 +52,18 @@ public class SalesUI extends JPanel {
     private JTextField txtCustomerId;
     private JLabel lblCustomerInfo;
 
+    // Sale Type Selection
+    private JRadioButton rbQuickCash;
+    private JRadioButton rbRegularSale;
+    private ButtonGroup saleTypeGroup;
+    private JPanel customerPanel;
+
     // Cash Handling Components
     private JLabel lblAmountDue;
     private JTextField txtCashReceived;
     private JLabel lblChangeDue;
     private JButton btnCalculateChange;
     private JButton btnViewCashSummary;
-
-    // Summary panel reference
-    private JPanel panel;
 
     // Buttons
     private JButton btnAddToCart;
@@ -55,15 +72,20 @@ public class SalesUI extends JPanel {
     private JButton btnCheckout;
     private JButton btnNewCustomer;
     private JButton btnGenerateReceipt;
+    private JButton btnQuickSale;
 
     // Data
     private List<Product> availableProducts;
     private List<CartItem> cartItems;
     private double currentSubtotal = 0.0;
-    private final double TAX_RATE = 0.15;
+    private final double TAX_RATE = 0.10; // 10% tax
     private int currentSaleId = 0;
+    private int currentUserId = 1; // This should come from logged-in user
 
-    // Dynamic Theme Colors
+    // Constants
+    private static final int WALK_IN_CUSTOMER_ID = 1;
+
+    // Theme Colors
     private final Color DARK_BG = AppTheme.getBgColor();
     private final Color CARD_BG = AppTheme.getCardColor();
     private final Color PRIMARY_COLOR = AppTheme.getPrimaryColor();
@@ -75,6 +97,9 @@ public class SalesUI extends JPanel {
     private final Color BORDER_COLOR = AppTheme.getBorderColor();
     private final Color INFO_COLOR = new Color(56, 189, 248);
 
+    /**
+     * Constructor - Initializes the Sales UI
+     */
     public SalesUI() {
         // Initialize services
         this.salesService = new SalesService();
@@ -97,7 +122,7 @@ public class SalesUI extends JPanel {
         contentPanel.setBackground(DARK_BG);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        // Top panel - Customer info and controls
+        // Top panel - Sale type selector and customer info
         JPanel topPanel = createTopPanel();
         contentPanel.add(topPanel, BorderLayout.NORTH);
 
@@ -118,8 +143,15 @@ public class SalesUI extends JPanel {
 
         // Load initial data
         loadProducts();
+
+        // Set default sale type
+        rbQuickCash.setSelected(true);
+        toggleSaleType();
     }
 
+    /**
+     * Creates the header panel with title and gradient background
+     */
     private JPanel createHeaderPanel() {
         RotatingGradientHeaderPanel header = new RotatingGradientHeaderPanel();
         header.setLayout(new BorderLayout());
@@ -171,6 +203,9 @@ public class SalesUI extends JPanel {
         return header;
     }
 
+    /**
+     * Creates the top panel with sale type selection and customer info
+     */
     private JPanel createTopPanel() {
         JPanel panel = new RoundedPanel(15);
         panel.setLayout(new GridBagLayout());
@@ -180,45 +215,49 @@ public class SalesUI extends JPanel {
         gbc.insets = new Insets(5, 10, 5, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Customer ID
+        // Sale Type Selection
         gbc.gridx = 0;
         gbc.gridy = 0;
+        gbc.gridwidth = 1;
         gbc.weightx = 0;
-        panel.add(createLabel("Customer ID:"), gbc);
+        panel.add(createLabel("Sale Type:"), gbc);
 
         gbc.gridx = 1;
-        gbc.weightx = 0.3;
-        txtCustomerId = createTextField(10);
-        txtCustomerId.addActionListener(e -> validateCustomer());
-        panel.add(txtCustomerId, gbc);
+        rbQuickCash = new JRadioButton("Quick Cash Sale (Walk-in)");
+        rbQuickCash.setForeground(TEXT_PRIMARY);
+        rbQuickCash.setBackground(CARD_BG);
+        rbQuickCash.addActionListener(e -> toggleSaleType());
+        panel.add(rbQuickCash, gbc);
 
-        // Customer Info
         gbc.gridx = 2;
+        rbRegularSale = new JRadioButton("Regular Sale (Registered Customer)");
+        rbRegularSale.setForeground(TEXT_PRIMARY);
+        rbRegularSale.setBackground(CARD_BG);
+        rbRegularSale.addActionListener(e -> toggleSaleType());
+        panel.add(rbRegularSale, gbc);
+
+        saleTypeGroup = new ButtonGroup();
+        saleTypeGroup.add(rbQuickCash);
+        saleTypeGroup.add(rbRegularSale);
+
+        // Customer Panel (shown only for regular sales)
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 3;
+        customerPanel = createCustomerPanel();
+        panel.add(customerPanel, gbc);
+
+        // Search Products (always visible)
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 1;
         gbc.weightx = 0;
-        panel.add(createLabel("Customer:"), gbc);
+        panel.add(createLabel("Search Products:"), gbc);
 
-        gbc.gridx = 3;
-        gbc.weightx = 0.5;
-        lblCustomerInfo = new JLabel("Enter customer ID");
-        lblCustomerInfo.setForeground(TEXT_SECONDARY);
-        lblCustomerInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        panel.add(lblCustomerInfo, gbc);
-
-        // New Customer Button
-        gbc.gridx = 4;
-        gbc.weightx = 0;
-        btnNewCustomer = createButton("+ New Customer", PRIMARY_COLOR);
-        btnNewCustomer.addActionListener(e -> showNewCustomerDialog());
-        panel.add(btnNewCustomer, gbc);
-
-        // Search Products
-        gbc.gridx = 5;
-        gbc.weightx = 0;
-        panel.add(createLabel("Search:"), gbc);
-
-        gbc.gridx = 6;
-        gbc.weightx = 0.4;
-        txtSearchProduct = createTextField(15);
+        gbc.gridx = 1;
+        gbc.gridwidth = 2;
+        gbc.weightx = 1.0;
+        txtSearchProduct = createTextField(30);
         txtSearchProduct.addKeyListener(new KeyAdapter() {
             @Override
             public void keyReleased(KeyEvent e) {
@@ -230,6 +269,51 @@ public class SalesUI extends JPanel {
         return panel;
     }
 
+    /**
+     * Creates the customer information panel (for regular sales)
+     */
+    private JPanel createCustomerPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setOpaque(false);
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 10, 5, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0;
+        panel.add(createLabel("Customer ID:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 0.3;
+        txtCustomerId = createTextField(10);
+        txtCustomerId.addActionListener(e -> validateCustomer());
+        panel.add(txtCustomerId, gbc);
+
+        gbc.gridx = 2;
+        gbc.weightx = 0;
+        panel.add(createLabel("Customer:"), gbc);
+
+        gbc.gridx = 3;
+        gbc.weightx = 0.5;
+        lblCustomerInfo = new JLabel("Enter customer ID");
+        lblCustomerInfo.setForeground(TEXT_SECONDARY);
+        lblCustomerInfo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        panel.add(lblCustomerInfo, gbc);
+
+        gbc.gridx = 4;
+        gbc.weightx = 0;
+        btnNewCustomer = createButton("+ New Customer", PRIMARY_COLOR);
+        btnNewCustomer.addActionListener(e -> showNewCustomerDialog());
+        panel.add(btnNewCustomer, gbc);
+
+        return panel;
+    }
+
+    /**
+     * Creates the products panel with available items
+     */
     private JPanel createProductsPanel() {
         JPanel card = new RoundedPanel(15);
         card.setLayout(new BorderLayout(0, 10));
@@ -302,7 +386,9 @@ public class SalesUI extends JPanel {
         return card;
     }
 
-    // Cart panel
+    /**
+     * Creates the shopping cart panel
+     */
     private JPanel createCartPanel() {
         JPanel card = new RoundedPanel(15);
         card.setLayout(new BorderLayout(0, 10));
@@ -381,8 +467,11 @@ public class SalesUI extends JPanel {
         return card;
     }
 
+    /**
+     * Creates the summary panel with totals and checkout
+     */
     private JPanel createSummaryPanel() {
-        panel = new RoundedPanel(15);
+        JPanel panel = new RoundedPanel(15);
         panel.setLayout(new BorderLayout(20, 0));
         panel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
 
@@ -402,13 +491,12 @@ public class SalesUI extends JPanel {
 
         gbc.gridx = 1;
         gbc.weightx = 0.3;
-        cmbPaymentMethod = new JComboBox<>(new String[] { "Cash", "Credit Card", "Debit Card", "Mobile Payment" });
+        cmbPaymentMethod = new JComboBox<>(new String[] { "Cash", "Card", "Cheque", "Online" });
         styleComboBox(cmbPaymentMethod);
         cmbPaymentMethod.addActionListener(e -> toggleCashFields());
         paymentPanel.add(cmbPaymentMethod, gbc);
 
-        // Cash Received (only visible for Cash payment )
-        // Other payment must save receipt from bank's card machine
+        // Cash Received (only visible for Cash payment)
         gbc.gridx = 2;
         gbc.weightx = 0;
         lblAmountDue = new JLabel("Amount Due:");
@@ -472,7 +560,36 @@ public class SalesUI extends JPanel {
         return panel;
     }
 
-    // Toggle cash fields visibility based on payment method
+    /**
+     * Toggles between Quick Cash and Regular sale modes
+     */
+    private void toggleSaleType() {
+        boolean isRegular = rbRegularSale.isSelected();
+        customerPanel.setVisible(isRegular);
+
+        // If quick cash, set payment method to Cash and disable other methods
+        if (rbQuickCash.isSelected()) {
+            cmbPaymentMethod.setSelectedItem("Cash");
+            cmbPaymentMethod.setEnabled(false);
+            toggleCashFields(); // Show cash fields
+        } else {
+            cmbPaymentMethod.setEnabled(true);
+        }
+
+        // Clear customer fields if switching to quick cash
+        if (!isRegular) {
+            txtCustomerId.setText("");
+            lblCustomerInfo.setText("Quick Cash Sale - No customer details needed");
+            lblCustomerInfo.setForeground(SUCCESS_COLOR);
+        }
+
+        revalidate();
+        repaint();
+    }
+
+    /**
+     * Toggles cash fields visibility based on payment method
+     */
     private void toggleCashFields() {
         boolean isCash = "Cash".equals(cmbPaymentMethod.getSelectedItem());
         lblAmountDue.setVisible(isCash);
@@ -483,23 +600,27 @@ public class SalesUI extends JPanel {
         if (isCash) {
             updateAmountDueLabel();
         }
-
-        if (panel != null) {
-            panel.revalidate();
-            panel.repaint();
-        }
     }
 
+    /**
+     * Updates the amount due label
+     */
     private void updateAmountDueLabel() {
         double grandTotal = calculateGrandTotal();
         lblAmountDue.setText(String.format("Amount Due: $%.2f", grandTotal));
     }
 
+    /**
+     * Calculates the grand total including tax
+     */
     private double calculateGrandTotal() {
         double tax = currentSubtotal * TAX_RATE;
         return currentSubtotal + tax;
     }
 
+    /**
+     * Calculates change based on cash received
+     */
     private void calculateChange() {
         try {
             double grandTotal = calculateGrandTotal();
@@ -528,7 +649,8 @@ public class SalesUI extends JPanel {
         }
     }
 
-    // Helper methods matching your style
+    // ==================== HELPER METHODS ====================
+
     private JLabel createLabel(String text) {
         JLabel label = new JLabel(text);
         label.setForeground(TEXT_SECONDARY);
@@ -611,7 +733,7 @@ public class SalesUI extends JPanel {
         comboBox.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value,
-                    int index, boolean isSelected, boolean cellHasFocus) {
+                                                          int index, boolean isSelected, boolean cellHasFocus) {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
                 setBackground(isSelected ? PRIMARY_COLOR : AppTheme.getCardColor());
                 setForeground(isSelected ? Color.WHITE : AppTheme.getTextColor());
@@ -639,7 +761,11 @@ public class SalesUI extends JPanel {
                 Math.max((int) (color.getBlue() * factor), 0));
     }
 
-    // Data loading and business logic methods
+    // ==================== DATA OPERATIONS ====================
+
+    /**
+     * Loads all products from database
+     */
     private void loadProducts() {
         SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
             @Override
@@ -661,6 +787,9 @@ public class SalesUI extends JPanel {
         worker.execute();
     }
 
+    /**
+     * Updates the products table display
+     */
     private void updateProductsTable() {
         productsTableModel.setRowCount(0);
         for (Product product : availableProducts) {
@@ -674,6 +803,9 @@ public class SalesUI extends JPanel {
         }
     }
 
+    /**
+     * Filters products based on search text
+     */
     private void filterProducts() {
         String searchText = txtSearchProduct.getText().toLowerCase();
         productsTableModel.setRowCount(0);
@@ -693,10 +825,12 @@ public class SalesUI extends JPanel {
         }
     }
 
+    /**
+     * Adds selected product to cart
+     */
     private void addToCart() {
         int selectedRow = tblAvailableProducts.getSelectedRow();
         if (selectedRow == -1) {
-            // Warning shown in case no product present/selected
             showWarning("Please select a product first");
             return;
         }
@@ -738,6 +872,9 @@ public class SalesUI extends JPanel {
         calculateTotals();
     }
 
+    /**
+     * Updates the cart table display
+     */
     private void updateCartTable() {
         cartTableModel.setRowCount(0);
         for (CartItem item : cartItems) {
@@ -750,7 +887,9 @@ public class SalesUI extends JPanel {
         }
     }
 
-    // Remove item from cart method
+    /**
+     * Removes selected item from cart
+     */
     private void removeFromCart() {
         int selectedRow = tblCart.getSelectedRow();
         if (selectedRow == -1) {
@@ -763,6 +902,9 @@ public class SalesUI extends JPanel {
         calculateTotals();
     }
 
+    /**
+     * Clears all items from cart
+     */
     private void clearCart() {
         if (cartItems.isEmpty()) {
             showInfo("Cart is already empty");
@@ -782,6 +924,9 @@ public class SalesUI extends JPanel {
         }
     }
 
+    /**
+     * Calculates subtotal, tax, and grand total
+     */
     private void calculateTotals() {
         currentSubtotal = 0.0;
         for (CartItem item : cartItems) {
@@ -802,6 +947,9 @@ public class SalesUI extends JPanel {
         }
     }
 
+    /**
+     * Gets product stock level
+     */
     private int getProductStock(int productId) {
         for (Product product : availableProducts) {
             if (product.getProductId() == productId) {
@@ -811,6 +959,9 @@ public class SalesUI extends JPanel {
         return 0;
     }
 
+    /**
+     * Validates customer ID
+     */
     private void validateCustomer() {
         String customerIdStr = txtCustomerId.getText().trim();
         if (customerIdStr.isEmpty()) {
@@ -853,8 +1004,10 @@ public class SalesUI extends JPanel {
         worker.execute();
     }
 
+    /**
+     * Shows dialog to create new customer
+     */
     private void showNewCustomerDialog() {
-        // Simple dialog for new customer
         JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), "New Customer", true);
         dialog.setLayout(new BorderLayout(10, 10));
         dialog.setSize(400, 300);
@@ -884,10 +1037,20 @@ public class SalesUI extends JPanel {
         JButton btnCancel = createButton("Cancel", DANGER_COLOR);
 
         btnSave.addActionListener(e -> {
-            // TODO
-            // Implement customer creation logic here
-            // You can call customerService.addCustomer() with the entered details
-            dialog.dispose();
+            // Create customer object
+            Customer customer = new Customer();
+            customer.setFullName(txtFirstName.getText().trim() + " " + txtLastName.getText().trim());
+            customer.setContact(txtContact.getText().trim());
+            customer.setEmail(txtEmail.getText().trim());
+            customer.setAddress(""); // Optional
+            customer.setLoyaltyPoints(0);
+
+            if (customerService.addCustomer(customer)) {
+                showSuccess("Customer added successfully!");
+                dialog.dispose();
+            } else {
+                showError("Failed to add customer");
+            }
         });
 
         btnCancel.addActionListener(e -> dialog.dispose());
@@ -907,26 +1070,46 @@ public class SalesUI extends JPanel {
         return label;
     }
 
+    /**
+     * Processes checkout based on sale type
+     */
     private void processCheckout() {
-        // Validation
+        // Validate cart
         if (cartItems.isEmpty()) {
             showError("Add items to cart before checkout");
             return;
         }
 
-        String customerIdStr = txtCustomerId.getText().trim();
-        if (customerIdStr.isEmpty()) {
-            showError("Please enter Customer ID");
-            txtCustomerId.requestFocus();
-            return;
+        int customerId;
+
+        // Handle based on sale type
+        if (rbQuickCash.isSelected()) {
+            // Quick Cash Sale - Use walk-in customer ID
+            customerId = WALK_IN_CUSTOMER_ID;
+        } else {
+            // Regular Sale - Validate customer ID
+            String customerIdStr = txtCustomerId.getText().trim();
+            if (customerIdStr.isEmpty()) {
+                showError("Please enter Customer ID for regular sale");
+                txtCustomerId.requestFocus();
+                return;
+            }
+
+            if (!Validator.isValidInteger(customerIdStr)) {
+                showError("Invalid Customer ID");
+                return;
+            }
+
+            customerId = Integer.parseInt(customerIdStr);
+
+            // Verify customer exists
+            Customer customer = customerService.getCustomerById(customerId);
+            if (customer == null) {
+                showError("Customer not found. Please enter a valid Customer ID or use Quick Cash Sale.");
+                return;
+            }
         }
 
-        if (!Validator.isValidInteger(customerIdStr)) {
-            showError("Invalid Customer ID");
-            return;
-        }
-
-        int customerId = Integer.parseInt(customerIdStr);
         String paymentMethod = (String) cmbPaymentMethod.getSelectedItem();
 
         // Cash validation
@@ -952,7 +1135,6 @@ public class SalesUI extends JPanel {
                 }
 
                 changeGiven = cashReceived - grandTotal;
-                lblChangeDue.setText(String.format("Change: $%.2f", changeGiven));
 
             } catch (NumberFormatException e) {
                 showError("Invalid cash amount");
@@ -961,18 +1143,13 @@ public class SalesUI extends JPanel {
             }
         }
 
-        // Create Sale object
-        Sale sale = new Sale(customerId, currentSubtotal);
-        sale.setUserId(1);
-        sale.setCreatedBy(1); // Use user ID 1 for now (logged in user)
-        sale.setDiscount(0.0);
-        sale.setTotalAmount(currentSubtotal);
-        sale.setPaymentMethod(paymentMethod);
-        sale.setStatus("Completed");
-        sale.setNotes("Sale from SalesUI");
-
-        // Set cash fields if cash payment
-        if ("Cash".equals(paymentMethod)) {
+        // Create Sale object based on sale type
+        Sale sale;
+        if (rbQuickCash.isSelected()) {
+            sale = Sale.createQuickCashSale(currentUserId, currentSubtotal, cashReceived);
+            sale.setNotes("Quick cash sale - Walk-in customer");
+        } else {
+            sale = Sale.createRegularSale(customerId, currentUserId, currentSubtotal, paymentMethod);
             sale.setCashReceived(cashReceived);
             sale.setChangeGiven(changeGiven);
         }
@@ -985,17 +1162,17 @@ public class SalesUI extends JPanel {
                     cartItem.productName,
                     cartItem.unitPrice,
                     cartItem.quantity);
-            detail.setCreatedBy(1); // Set user ID
             detail.setTotalPrice(cartItem.getSubtotal());
             detail.setDiscount(0.0);
             saleDetails.add(detail);
         }
         sale.setSaleDetails(saleDetails);
 
-        // Process checkout - Use final copies for inner class
+        // Process checkout
         final String finalPaymentMethod = paymentMethod;
         final Double finalCashReceived = cashReceived;
         final Double finalChangeGiven = changeGiven;
+        final boolean isQuickSale = rbQuickCash.isSelected();
 
         SwingWorker<Integer, Void> worker = new SwingWorker<Integer, Void>() {
             @Override
@@ -1010,14 +1187,17 @@ public class SalesUI extends JPanel {
                     currentSaleId = saleId;
 
                     SwingUtilities.invokeLater(() -> {
-                        // Show cash summary if cash payment
-                        if ("Cash".equals(finalPaymentMethod)) {
-                            showSuccess(String.format(
-                                    "Checkout successful! Sale #%d\nCash: $%.2f | Change: $%.2f",
-                                    saleId, finalCashReceived, finalChangeGiven));
+                        String message;
+                        if (isQuickSale) {
+                            message = String.format(
+                                    "Quick Cash Sale successful!\nSale #%d\nTotal: $%.2f\nCash: $%.2f\nChange: $%.2f",
+                                    saleId, calculateGrandTotal(), finalCashReceived, finalChangeGiven);
                         } else {
-                            showSuccess("Checkout successful! Sale #" + saleId);
+                            message = String.format(
+                                    "Regular Sale successful!\nSale #%d\nTotal: $%.2f\nCustomer ID: %d",
+                                    saleId, calculateGrandTotal(), customerId);
                         }
+                        showSuccess(message);
 
                         // Enable receipt generation
                         btnGenerateReceipt.setEnabled(true);
@@ -1044,6 +1224,9 @@ public class SalesUI extends JPanel {
         worker.execute();
     }
 
+    /**
+     * Generates PDF receipt for the last sale
+     */
     private void generateReceipt() {
         if (currentSaleId == 0) {
             showError("No sale has been processed yet");
@@ -1102,6 +1285,9 @@ public class SalesUI extends JPanel {
         }
     }
 
+    /**
+     * Shows daily cash summary
+     */
     private void showCashSummary() {
         SwingWorker<List<Object[]>, Void> worker = new SwingWorker<List<Object[]>, Void>() {
             @Override
@@ -1146,7 +1332,32 @@ public class SalesUI extends JPanel {
         worker.execute();
     }
 
-    // Helper classes matching your style
+    // ==================== INNER CLASSES ====================
+
+    /**
+     * CartItem - Represents an item in the shopping cart
+     */
+    private static class CartItem {
+        int productId;
+        String productName;
+        double unitPrice;
+        int quantity;
+
+        CartItem(int productId, String productName, double unitPrice, int quantity) {
+            this.productId = productId;
+            this.productName = productName;
+            this.unitPrice = unitPrice;
+            this.quantity = quantity;
+        }
+
+        double getSubtotal() {
+            return unitPrice * quantity;
+        }
+    }
+
+    /**
+     * RoundedPanel - Custom JPanel with rounded corners
+     */
     private static class RoundedPanel extends JPanel {
         private final int radius;
 
@@ -1168,15 +1379,18 @@ public class SalesUI extends JPanel {
         }
     }
 
+    /**
+     * RotatingGradientHeaderPanel - Header with animated gradient
+     */
     private static class RotatingGradientHeaderPanel extends JPanel {
         private double angle = 0;
         private final Color color1 = AppTheme.getGradient1();
         private final Color color2 = AppTheme.getGradient2();
-        private final javax.swing.Timer timer;
+        private final javax.swing.Timer timer; // Fully qualified to avoid ambiguity
 
         public RotatingGradientHeaderPanel() {
             setOpaque(false);
-            timer = new javax.swing.Timer(60, e -> {
+            timer = new javax.swing.Timer(60, e -> { // Fully qualified here too
                 angle += Math.toRadians(1.8);
                 if (angle > Math.PI * 2)
                     angle -= Math.PI * 2;
@@ -1207,26 +1421,8 @@ public class SalesUI extends JPanel {
         }
     }
 
-    // Inner class for cart items
-    private static class CartItem {
-        int productId;
-        String productName;
-        double unitPrice;
-        int quantity;
+    // ==================== MESSAGE HELPERS ====================
 
-        CartItem(int productId, String productName, double unitPrice, int quantity) {
-            this.productId = productId;
-            this.productName = productName;
-            this.unitPrice = unitPrice;
-            this.quantity = quantity;
-        }
-
-        double getSubtotal() {
-            return unitPrice * quantity;
-        }
-    }
-
-    // Message dialog helpers
     private void showSuccess(String message) {
         JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
     }
@@ -1243,7 +1439,9 @@ public class SalesUI extends JPanel {
         JOptionPane.showMessageDialog(this, message, "Info", JOptionPane.INFORMATION_MESSAGE);
     }
 
-    // Main method for testing
+    /**
+     * Main method for testing
+     */
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             JFrame frame = new JFrame("Sales Management");
