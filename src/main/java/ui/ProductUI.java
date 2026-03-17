@@ -32,17 +32,13 @@ public class ProductUI extends JPanel {
     private int editingProductId = -1;
 
     // Dynamic Theme Colors
+    private final Color PRIMARY_COLOR = AppTheme.getPrimaryColor();
+    private final Color ACCENT_COLOR = AppTheme.getPrimaryColor().brighter();
+    private final Color TEXT_PRIMARY = AppTheme.getTextColor();
+    private final Color BORDER_COLOR = AppTheme.getBorderColor();
     private final Color DARK_BG = AppTheme.getBgColor();
     private final Color DARKER_BG = AppTheme.getCardColor();
     private final Color CARD_BG = AppTheme.getCardColor();
-    private final Color PRIMARY_COLOR = AppTheme.getPrimaryColor();
-    private final Color SUCCESS_COLOR = new Color(34, 197, 94); // Green
-    private final Color WARNING_COLOR = new Color(251, 146, 60); // Orange
-    private final Color DANGER_COLOR = new Color(239, 68, 68); // Red
-    private final Color TEXT_PRIMARY = AppTheme.getTextColor();
-    private final Color TEXT_SECONDARY = AppTheme.getSubTextColor();
-    private final Color BORDER_COLOR = AppTheme.getBorderColor();
-    private final Color ACCENT_COLOR = AppTheme.getPrimaryColor().brighter();
 
     /**
      * Constructor for ProductUI
@@ -148,7 +144,7 @@ public class ProductUI extends JPanel {
         refreshButton = new JButton("Refresh");
         clearButton = new JButton("Clear Form");
 
-        styleButton(addButton, SUCCESS_COLOR);
+        styleButton(addButton, AppTheme.getSuccessColor());
         styleButton(refreshButton, PRIMARY_COLOR);
         styleButton(clearButton, BORDER_COLOR);
     }
@@ -357,7 +353,7 @@ public class ProductUI extends JPanel {
 
         JLabel label = new JLabel(labelText);
         label.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        label.setForeground(TEXT_SECONDARY);
+        label.setForeground(AppTheme.getSubTextColor());
         label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         component.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
@@ -575,7 +571,7 @@ public class ProductUI extends JPanel {
                 isEditMode = true;
                 editingProductId = productId;
                 addButton.setText("Update Product");
-                styleButton(addButton, WARNING_COLOR);
+                styleButton(addButton, AppTheme.getWarningColor());
 
             } else {
                 JOptionPane.showMessageDialog(this,
@@ -643,7 +639,7 @@ public class ProductUI extends JPanel {
         isEditMode = false;
         editingProductId = -1;
         addButton.setText("Add Product");
-        styleButton(addButton, SUCCESS_COLOR);
+        styleButton(addButton, AppTheme.getSuccessColor());
     }
 
     /**
@@ -723,14 +719,14 @@ public class ProductUI extends JPanel {
             setBackground(CARD_BG);
 
             editButton = new JButton("✏️ Edit");
-            editButton.setBackground(PRIMARY_COLOR);
+            editButton.setBackground(AppTheme.getPrimaryColor());
             editButton.setForeground(Color.WHITE);
             editButton.setFocusPainted(false);
             editButton.setFont(new Font("Segoe UI", Font.BOLD, 11));
             editButton.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
 
             deleteButton = new JButton("🗑️ Delete");
-            deleteButton.setBackground(DANGER_COLOR);
+            deleteButton.setBackground(AppTheme.getDangerColor());
             deleteButton.setForeground(Color.WHITE);
             deleteButton.setFocusPainted(false);
             deleteButton.setFont(new Font("Segoe UI", Font.BOLD, 11));
@@ -764,7 +760,7 @@ public class ProductUI extends JPanel {
             panel.setBackground(CARD_BG);
 
             editButton = new JButton("✏️ Edit");
-            editButton.setBackground(PRIMARY_COLOR);
+            editButton.setBackground(AppTheme.getPrimaryColor());
             editButton.setForeground(Color.WHITE);
             editButton.setFocusPainted(false);
             editButton.setFont(new Font("Segoe UI", Font.BOLD, 11));
@@ -772,7 +768,7 @@ public class ProductUI extends JPanel {
             editButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
             deleteButton = new JButton("🗑️ Delete");
-            deleteButton.setBackground(DANGER_COLOR);
+            deleteButton.setBackground(AppTheme.getDangerColor());
             deleteButton.setForeground(Color.WHITE);
             deleteButton.setFocusPainted(false);
             deleteButton.setFont(new Font("Segoe UI", Font.BOLD, 11));

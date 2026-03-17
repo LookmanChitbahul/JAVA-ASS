@@ -26,7 +26,7 @@ public class AnalyticsUI extends JPanel {
     private final Color DARK_BG = AppTheme.getBgColor();
     private final Color CARD_BG = AppTheme.getCardColor();
     private final Color PRIMARY_COLOR = AppTheme.getPrimaryColor();
-    private final Color SUCCESS_COLOR = new Color(34, 197, 129);
+    private final Color SUCCESS_COLOR = AppTheme.getSuccessColor();
     private final Color TEXT_PRIMARY = AppTheme.getTextColor();
     private final Color TEXT_SECONDARY = AppTheme.getSubTextColor();
 
@@ -370,8 +370,13 @@ public class AnalyticsUI extends JPanel {
             double total = data.values().stream().mapToDouble(Double::doubleValue).sum();
             int w = getWidth(), h = getHeight(), size = Math.min(w, h) - 60;
             int x = (w - size) / 2, y = (h - size) / 2, startAngle = 0;
-            Color[] colors = { PRIMARY_COLOR, SUCCESS_COLOR, new Color(251, 146, 60), new Color(239, 68, 68),
-                    new Color(168, 85, 247) };
+            Color[] colors = { 
+                AppTheme.getPrimaryColor(), 
+                AppTheme.getSuccessColor(), 
+                AppTheme.getInfoColor(), 
+                AppTheme.getWarningColor(), 
+                AppTheme.getDangerColor() 
+            };
             int i = 0;
             for (Double val : data.values()) {
                 int arcAngle = (int) Math.round(val * 360 / Math.max(total, 1));
