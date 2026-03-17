@@ -89,13 +89,13 @@ public class SalesUI extends JPanel {
     private final Color DARK_BG = AppTheme.getBgColor();
     private final Color CARD_BG = AppTheme.getCardColor();
     private final Color PRIMARY_COLOR = AppTheme.getPrimaryColor();
-    private final Color SUCCESS_COLOR = new Color(34, 197, 94);
-    private final Color DANGER_COLOR = new Color(239, 68, 68);
-    private final Color WARNING_COLOR = new Color(251, 146, 60);
+    private final Color SUCCESS_COLOR = AppTheme.getSuccessColor();
+    private final Color DANGER_COLOR = AppTheme.getDangerColor();
+    private final Color WARNING_COLOR = AppTheme.getWarningColor();
     private final Color TEXT_PRIMARY = AppTheme.getTextColor();
     private final Color TEXT_SECONDARY = AppTheme.getSubTextColor();
     private final Color BORDER_COLOR = AppTheme.getBorderColor();
-    private final Color INFO_COLOR = new Color(56, 189, 248);
+    private final Color INFO_COLOR = AppTheme.getInfoColor();
 
     /**
      * Constructor - Initializes the Sales UI
@@ -163,7 +163,7 @@ public class SalesUI extends JPanel {
 
         JLabel subtitle = new JLabel("Process customer sales and generate receipts");
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        subtitle.setForeground(new Color(220, 220, 220));
+        subtitle.setForeground(AppTheme.getSubTextColor());
 
         // Cash summary button
         btnViewCashSummary = createButton("Daily Cash Summary", INFO_COLOR);
@@ -188,7 +188,7 @@ public class SalesUI extends JPanel {
 
         JLabel lblDate = new JLabel(new SimpleDateFormat("dd MMM yyyy HH:mm").format(new Date()));
         lblDate.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblDate.setForeground(new Color(200, 200, 200));
+        lblDate.setForeground(AppTheme.getSubTextColor());
 
         infoPanel.add(btnViewCashSummary);
         infoPanel.add(Box.createVerticalStrut(10));
@@ -670,7 +670,10 @@ public class SalesUI extends JPanel {
 
     private JTextField createTextField(int columns) {
         JTextField tf = new JTextField(columns);
-        tf.setBackground(new Color(30, 41, 65));
+        tf.setBackground(AppTheme.getCardColor().brighter());
+        if (AppTheme.isDarkMode()) {
+           tf.setBackground(new Color(30, 41, 65));
+        }
         tf.setForeground(TEXT_PRIMARY);
         tf.setCaretColor(TEXT_PRIMARY);
         tf.setBorder(BorderFactory.createCompoundBorder(

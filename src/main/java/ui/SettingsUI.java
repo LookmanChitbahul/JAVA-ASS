@@ -8,12 +8,22 @@ import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.Map;
+import java.sql.*;
+import java.io.File;
+import java.io.IOException;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
+import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import database.DBConnection;
 
 public class SettingsUI extends JPanel {
     private final SettingsService settingsService;
 
     private ModernToggle themeToggle;
     private ModernToggle notificationToggle;
+    private ModernToggle accessibilityToggle;
     private JComboBox<String> reportFrequency;
     private JTextField emailSettings;
 
@@ -22,26 +32,62 @@ public class SettingsUI extends JPanel {
         applyTheme();
     }
 
+    // Custom panel for background image
+    private class BackgroundPanel extends JPanel {
+        private Image backgroundImage;
+
+        public BackgroundPanel() {
+            try {
+                // Try classpath first
+                java.net.URL imgUrl = getClass().getResource("/images/background_settings.jpg");
+                if (imgUrl != null) {
+                    backgroundImage = new ImageIcon(imgUrl).getImage();
+                } else {
+                    // Fallback to file path
+                    backgroundImage = new ImageIcon("src/main/resources/images/background_settings.jpg").getImage();
+                }
+            } catch (Exception e) {
+                System.err.println("Could not load background image: " + e.getMessage());
+            }
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            if (backgroundImage != null) {
+                g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
+                // Add a semi-transparent overlay to keep text readable
+                g.setColor(new Color(0, 0, 0, AppTheme.isDarkMode() ? 120 : 40));
+                g.fillRect(0, 0, getWidth(), getHeight());
+            }
+        }
+    }
+
     private void applyTheme() {
         removeAll();
         setLayout(new BorderLayout());
-        setBackground(AppTheme.getBgColor());
-        setBorder(new EmptyBorder(30, 40, 30, 40));
+        
+        BackgroundPanel background = new BackgroundPanel();
+        background.setLayout(new BorderLayout());
+        background.setBorder(new EmptyBorder(30, 40, 30, 40));
+        background.setOpaque(true);
+        background.setBackground(AppTheme.getBgColor());
 
         // Header
-        add(createHeader(), BorderLayout.NORTH);
+        background.add(createHeader(), BorderLayout.NORTH);
 
         // Content
         JPanel contentGrid = new JPanel(new GridLayout(1, 2, 30, 0));
         contentGrid.setOpaque(false);
-
         contentGrid.add(createPreferencesCard());
         contentGrid.add(createSystemCard());
 
-        add(contentGrid, BorderLayout.CENTER);
+        background.add(contentGrid, BorderLayout.CENTER);
 
         // Footer Action
-        add(createActionFooter(), BorderLayout.SOUTH);
+        background.add(createActionFooter(), BorderLayout.SOUTH);
+        
+        add(background, BorderLayout.CENTER);
 
         loadCurrentSettings();
         revalidate();
@@ -83,11 +129,14 @@ public class SettingsUI extends JPanel {
 
         themeToggle = new ModernToggle("Dark Mode");
         notificationToggle = new ModernToggle("Push Notifications");
+        accessibilityToggle = new ModernToggle("Color Blind Mode");
 
         gbc.gridy = 0;
         form.add(createSettingRow("Appearance", "Toggle between light and dark themes", themeToggle), gbc);
         gbc.gridy = 1;
         form.add(createSettingRow("Notifications", "Receive real-time alerts on sales", notificationToggle), gbc);
+        gbc.gridy = 2;
+        form.add(createSettingRow("Accessibility", "Enable high-contrast color blind palette", accessibilityToggle), gbc);
 
         card.add(form, BorderLayout.CENTER);
         return card;
@@ -108,10 +157,9 @@ public class SettingsUI extends JPanel {
         emailSettings = new JTextField();
         styleTextField(emailSettings);
 
-        JButton btnBackup = new JButton("Run Database Backup");
+        JButton btnBackup = new JButton("Export Database to PDF");
         styleButton(btnBackup, AppTheme.getPrimaryColor());
-        btnBackup
-                .addActionListener(e -> JOptionPane.showMessageDialog(this, "Database backup initiated successfully!"));
+        btnBackup.addActionListener(e -> exportDatabaseToPDF());
 
         gbc.gridy = 0;
         form.add(createSettingRow("Report Frequency", "Automatic generation interval", reportFrequency), gbc);
@@ -208,6 +256,8 @@ public class SettingsUI extends JPanel {
     private void saveSettings() {
         boolean dark = themeToggle.isSelected();
         AppTheme.setDarkMode(dark);
+        AppTheme.setColorBlindMode(accessibilityToggle.isSelected());
+        
         settingsService.saveSetting("notifications_enabled", String.valueOf(notificationToggle.isSelected()));
         settingsService.saveSetting("report_frequency", (String) reportFrequency.getSelectedItem());
         settingsService.saveSetting("admin_email", emailSettings.getText());
@@ -225,8 +275,157 @@ public class SettingsUI extends JPanel {
         Map<String, String> settings = settingsService.getAllSettings();
         themeToggle.setSelected(Boolean.parseBoolean(settings.getOrDefault("theme_dark", "true")));
         notificationToggle.setSelected(Boolean.parseBoolean(settings.getOrDefault("notifications_enabled", "true")));
+        accessibilityToggle.setSelected(AppTheme.isColorBlindMode());
         reportFrequency.setSelectedItem(settings.getOrDefault("report_frequency", "Daily"));
         emailSettings.setText(settings.getOrDefault("admin_email", "admin@store.com"));
+    }
+
+    private void exportDatabaseToPDF() {
+        try (PDDocument document = new PDDocument()) {
+            PDFContext ctx = new PDFContext(document);
+            ctx.newPage();
+
+            // Report Header
+            ctx.stream.beginText();
+            ctx.stream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 22);
+            ctx.stream.newLineAtOffset(50, 750);
+            ctx.stream.showText("Smart Retail - Database Backup Report");
+            ctx.stream.endText();
+
+            ctx.stream.beginText();
+            ctx.stream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 10);
+            ctx.stream.newLineAtOffset(50, 730);
+            ctx.stream.showText("Generated on: " + new java.util.Date().toString());
+            ctx.stream.endText();
+
+            ctx.y = 690;
+
+            // Export Tables
+            addTableToPDF(ctx, "USERS", 
+                new String[]{"ID", "Username", "Email", "Status"}, 
+                new String[]{"user_id", "username", "email", "status"});
+            
+            ctx.y -= 40;
+            addTableToPDF(ctx, "PRODUCTS", 
+                new String[]{"ID", "Name", "Price", "Stock"}, 
+                new String[]{"product_id", "name", "price", "stock"});
+            
+            ctx.y -= 40;
+            addTableToPDF(ctx, "CUSTOMERS", 
+                new String[]{"ID", "First Name", "Last Name", "Email"}, 
+                new String[]{"customer_id", "first_name", "last_name", "email"});
+
+            ctx.closeStream();
+
+            File file = new File("Database_Backup.pdf");
+            document.save(file);
+            JOptionPane.showMessageDialog(this, "Professional PDF backup saved to: " + file.getAbsolutePath());
+        } catch (Exception e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Error generating backup: " + e.getMessage());
+        }
+    }
+
+    private static class PDFContext {
+        PDDocument doc;
+        PDPage page;
+        PDPageContentStream stream;
+        float y;
+        int pageNum = 0;
+
+        PDFContext(PDDocument doc) { this.doc = doc; }
+
+        void newPage() throws IOException {
+            if (stream != null) {
+                drawFooter();
+                stream.close();
+            }
+            page = new PDPage();
+            doc.addPage(page);
+            stream = new PDPageContentStream(doc, page);
+            y = 750;
+            pageNum++;
+        }
+
+        void closeStream() throws IOException {
+            if (stream != null) {
+                drawFooter();
+                stream.close();
+            }
+        }
+
+        private void drawFooter() throws IOException {
+            stream.beginText();
+            stream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_OBLIQUE), 8);
+            stream.newLineAtOffset(500, 30);
+            stream.showText("Page " + pageNum);
+            stream.endText();
+        }
+
+        void checkSpace(float needed) throws IOException {
+            if (y - needed < 50) {
+                newPage();
+            }
+        }
+    }
+
+    private void addTableToPDF(PDFContext ctx, String title, String[] headers, String[] dbCols) throws SQLException, IOException {
+        float margin = 50;
+        float rowHeight = 20;
+        float[] xOffsets = {50, 120, 250, 420}; // Fixed absolute x-coordinates for columns
+
+        ctx.checkSpace(60);
+
+        // Draw Table Title
+        ctx.stream.beginText();
+        ctx.stream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 14);
+        ctx.stream.newLineAtOffset(margin, ctx.y);
+        ctx.stream.showText(title + " DATA");
+        ctx.stream.endText();
+        ctx.y -= 25;
+
+        // Draw Line
+        ctx.stream.setLineWidth(1.0f);
+        ctx.stream.moveTo(margin, ctx.y + 5);
+        ctx.stream.lineTo(550, ctx.y + 5);
+        ctx.stream.stroke();
+
+        // Draw Headers
+        ctx.stream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA_BOLD), 10);
+        for (int i = 0; i < headers.length; i++) {
+            ctx.stream.beginText();
+            ctx.stream.newLineAtOffset(xOffsets[i], ctx.y);
+            ctx.stream.showText(headers[i]);
+            ctx.stream.endText();
+        }
+        ctx.y -= rowHeight;
+
+        // Fetch Data
+        String sql = "SELECT * FROM " + title.toLowerCase();
+        try (Connection conn = DBConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            while (rs.next()) {
+                ctx.checkSpace(rowHeight);
+                if (ctx.y > 700) { // New page was triggered
+                    ctx.y -= rowHeight; // Adjust for title gap
+                }
+
+                ctx.stream.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 9);
+                for (int j = 0; j < dbCols.length; j++) {
+                    ctx.stream.beginText();
+                    ctx.stream.newLineAtOffset(xOffsets[j], ctx.y);
+                    String val = rs.getString(dbCols[j]);
+                    if (val == null) val = "";
+                    if (val.length() > 25) val = val.substring(0, 22) + "..";
+                    ctx.stream.showText(val);
+                    ctx.stream.endText();
+                }
+                ctx.y -= rowHeight;
+            }
+        }
+        ctx.y -= 20; // Extra gap between tables
     }
 
     // Modern iOS Style Toggle Switch

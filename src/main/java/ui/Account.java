@@ -6,9 +6,9 @@ import javax.swing.*;
 import services.AuthService;
 
 public class Account extends JPanel {
-    private final Color PRIMARY_COLOR = AppTheme.getGradient1();
+    private final Color PRIMARY_COLOR = AppTheme.getPrimaryColor();
     private final Color SECONDARY_COLOR = AppTheme.getGradient2();
-    private final Color ACCENT_COLOR = new Color(46, 204, 113);
+    private final Color ACCENT_COLOR = AppTheme.getSuccessColor();
     private final Color DARK_BG = AppTheme.getBgColor();
     private final Color TEXT_COLOR = AppTheme.getTextColor();
     private final Color CARD_BG = AppTheme.getCardColor();
@@ -112,7 +112,7 @@ public class Account extends JPanel {
 
         JLabel subtitleLabel = new JLabel("Manage your profile and preferences");
         subtitleLabel.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        subtitleLabel.setForeground(new Color(220, 220, 220));
+        subtitleLabel.setForeground(AppTheme.getSubTextColor());
 
         textArea.add(titleLabel);
         textArea.add(subtitleLabel);
@@ -269,8 +269,8 @@ public class Account extends JPanel {
         buttonsPanel.setOpaque(false);
         buttonsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
 
-        JButton logoutBtn = createStyledButton("Logout", new Color(239, 68, 68));
-        JButton cancelBtn = createStyledButton("Cancel", new Color(75, 85, 99));
+        JButton logoutBtn = createStyledButton("Logout", AppTheme.getDangerColor());
+        JButton cancelBtn = createStyledButton("Cancel", AppTheme.getSubTextColor());
 
         cancelBtn.addActionListener(e -> {
             Window window = SwingUtilities.getWindowAncestor(this);

@@ -165,8 +165,8 @@ public class DashboardUI {
     private class RotatingGradientPanel extends JPanel {
         private double angle = 0;
         // gradient from #000428 → #004e92
-        private final Color color1 = Color.decode("#000428");
-        private final Color color2 = Color.decode("#004e92");
+        private final Color color1 = AppTheme.getGradient1();
+        private final Color color2 = AppTheme.getGradient2();
         private final Timer timer;
 
         public RotatingGradientPanel() {

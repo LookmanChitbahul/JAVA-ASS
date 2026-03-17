@@ -49,7 +49,7 @@ public class CustomerUI extends JPanel {
 
         JLabel subtitle = new JLabel("Manage and organize your customers");
         subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        subtitle.setForeground(new Color(220, 220, 220));
+        subtitle.setForeground(AppTheme.getSubTextColor());
 
         JPanel textPanel = new JPanel();
         textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
@@ -244,7 +244,7 @@ public class CustomerUI extends JPanel {
 
     private JButton createButton(String text) {
         JButton btn = new JButton(text);
-        btn.setBackground(new Color(59, 130, 246));
+        btn.setBackground(AppTheme.getPrimaryColor());
         btn.setForeground(Color.WHITE);
         btn.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btn.setFocusPainted(false);
@@ -254,11 +254,11 @@ public class CustomerUI extends JPanel {
 
         btn.addMouseListener(new MouseAdapter() {
             public void mouseEntered(MouseEvent e) {
-                btn.setBackground(new Color(37, 99, 235));
+                btn.setBackground(AppTheme.getPrimaryColor().darker());
             }
 
             public void mouseExited(MouseEvent e) {
-                btn.setBackground(new Color(59, 130, 246));
+                btn.setBackground(AppTheme.getPrimaryColor());
             }
         });
 
